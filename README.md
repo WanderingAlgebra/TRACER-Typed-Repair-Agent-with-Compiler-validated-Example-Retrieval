@@ -70,7 +70,7 @@ python src/agent.py solve `
 
 ## 直接输入 API 配置
 
-单次运行可以在命令行输入接口地址、模型，并通过安全提示输入密钥。密钥只存在于当前进程内，不写入日志和缓存：
+单次运行可以在命令行输入接口地址、模型，并通过安全提示输入密钥。输入时终端不会显示密钥；读取完成后只显示字符数和末四位，便于确认粘贴是否成功。完整密钥只存在于当前进程内，不写入日志和缓存：
 
 ```powershell
 python src/agent.py solve `
@@ -82,6 +82,32 @@ python src/agent.py solve `
   --model "your-model" `
   --api-key-prompt
 ```
+
+DeepSeek 等提供 OpenAI 兼容聊天接口的服务也可以直接使用。例如：
+
+```powershell
+python src/agent.py solve `
+  --file lean_project/Benchmarks/Evaluation18.lean `
+  --theorem Eval18.and_swap_eval `
+  --condition B `
+  --provider openai_compatible `
+  --api-url "https://api.deepseek.com/chat/completions" `
+  --model "your-deepseek-model" `
+  --temperature 0 `
+  --max-tokens 2000 `
+  --api-key-prompt `
+  --max-rounds 3
+```
+
+模型名称必须替换为账户实际可用的名称。模型即使返回 Markdown 的 `lean` 代码围栏，TRACER 也会先提取其中的局部证明，再交给 Lean 编译器；相同请求命中旧缓存时也会执行同样的清洗。
+
+### 如何判断失败位置
+
+- 出现 `provider_error`：请求尚未进入 Lean 编译阶段，应检查接口地址、密钥、模型名、额度或代理。
+- 出现 `diagnostic.category = syntax/type/goal`：模型请求已经成功，失败来自候选证明的 Lean 编译结果。
+- `compile_ok: false` 本身不代表 API 损坏；应同时阅读 `diagnostic`。
+- 每轮详细候选、缓存命中、模型 usage 和编译诊断记录在 `results/agent_runs.jsonl`。
+- 成功证明保存到 `results/solutions/`；持续失败的最后候选保存到 `results/solutions/failures/`。
 
 也可以使用本地 HTTP 接口：
 
@@ -128,6 +154,7 @@ PROGRESS.md             唯一的当前工作进度记录
 - 当前支持经过编译验证的 theorem standalone 和完整文件 fallback；多文件依赖切片和数学意义上的全局最小化尚未承诺。
 - 诊断比较使用可读的规范化文本 `diagnostic_key`，并保留原始诊断供人工审计。
 - API 密钥不进入 JSONL、SQLite、候选文件、manifest 或错误响应。
+- Provider 返回的 Markdown 代码围栏会在解析边界和编译边界各清洗一次，兼容历史缓存。
 - 仓库中的实验结果不能替代正式的模型对比实验；正式实验必须记录模型配置、token、延迟和人工复核。
 
 ## 贡献

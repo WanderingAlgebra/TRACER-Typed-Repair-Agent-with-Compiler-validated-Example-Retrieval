@@ -1,26 +1,30 @@
-# Methodology
+# 方法设计
 
-## Task formulation
+## 任务定义
 
-Each benchmark item specifies a Lean source file, a fully qualified theorem name, topical tags, and a proof obligation represented by a marked region or a unique placeholder. The agent is allowed to replace only that local proof region.
+每个 benchmark 条目指定 Lean 源文件、完全限定的定理名、题型标签，以及由标记区域或唯一占位符表示的证明义务。Agent 只能替换目标局部证明区域，不允许覆盖原文件、imports 或定理头。
 
-## Controlled conditions
+## 受控条件
 
-- **A**: theorem statement and local source context only.
-- **B**: A plus the bounded diagnostic from the preceding compilation attempt.
-- **C**: B plus the top-k locally retrieved examples, recorded verbatim in the trace.
+- **A**：只提供定理陈述和局部源代码上下文。
+- **B**：在 A 的基础上加入上一轮有界编译诊断。
+- **C**：在 B 的基础上加入 Top-k 本地检索示例，实际示例文本逐项写入追踪记录。
 
-Provider, model, generation limits, compiler, timeout, task order, and repair budget are held constant across conditions. Only the prompt context changes.
+三种条件保持 provider、模型、温度、最大输出长度、编译器、超时、题目顺序和修复轮数一致，只改变 prompt 上下文。项目不训练或微调模型，研究对象是编译反馈与示例检索对推理时修复过程的影响。
 
-## Verification protocol
+## 候选规范化
 
-1. Read the original source without modifying it.
-2. Generate a local proof term through the configured provider.
-3. Patch an isolated temporary copy and invoke the project-aware Lean/Lake compiler.
-4. Normalize diagnostics into a bounded category and feedback string.
-5. Retry at most three rounds, stopping immediately after a successful compile.
-6. Save successful isolated sources, unsuccessful candidates, structured traces, and optional manual-review decisions.
+Provider 返回文本后，系统提取 JSON 中的候选字段，并兼容常见的 Markdown `lean`、`lean4`、`text` 或无语言代码围栏。编译边界会再次清洗候选，因此旧 SQLite 缓存中的围栏文本也不会直接进入 Lean 文件。规范化不改写证明逻辑，只移除传输格式包装。
 
-## Validity constraints
+## 验证协议
 
-The evaluation path must not contain a standard-answer table or deterministic answer routing. A formal claim requires a configured real provider, complete JSONL traces, token/cost metadata, and manual review of every accepted proof. The 18-item set is a workflow pilot rather than evidence of general automated theorem-proving ability.
+1. 读取原始源文件但不修改它。
+2. 通过配置的 provider 生成局部证明项。
+3. 在隔离临时副本中补丁化证明，并调用项目感知的 Lean/Lake 编译器。
+4. 把原始诊断规范化为有界类别和反馈文本。
+5. 最多重试三轮，编译成功或 provider 失败后立即停止。
+6. 保存成功隔离文件、失败候选、结构化追踪和人工复核结论。
+
+## 有效性约束
+
+评测路径不得包含标准答案表或确定性的答案路由。正式结论必须具备真实 provider 配置、完整 JSONL 轨迹、token/成本元数据，以及对每个成功证明的人工复核。18 题集合只用于验证研究流程，不构成通用自动定理证明能力的证据。

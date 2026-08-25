@@ -9,6 +9,8 @@
 - 每轮最多三次，Lean 编译结果作为 verifier。
 - 请求使用 SQLite 精确文本唯一键缓存，成功证明保存到 `results/solutions/`。
 - 失败候选、结构化诊断、provider 配置、usage、缓存命中、编译命令和编译耗时保存到 JSONL。
+- 模型返回的 Markdown 代码围栏会在解析和编译边界清洗；旧缓存候选同样适用。
+- CLI 失败输出会区分 provider 调用错误与 Lean 语法、类型或目标错误，不能仅凭 `compile_ok` 判断 API 状态。
 - 报告同时生成平均 token、可选的估算 API 成本和按题型汇总；人工复核台账使用同一 benchmark ID。
 
 ## 正式 pilot 命令

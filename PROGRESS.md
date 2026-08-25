@@ -11,6 +11,7 @@
 - 保存 `capsule.json`、工具链与 Lake 配置、原始诊断、README、PowerShell/Unix 回放脚本。
 - 增加 Std、Mathlib、project-local 三类来源的公开失败 gallery，共 24 个 capsule。
 - 增加单次 Agent 的 API 配置参数和本地 HTTP `/solve` 接口；密钥只在内存中使用。
+- CLI 会安全确认密钥长度和末四位，区分 provider 错误与 Lean 编译错误，并清洗模型及历史缓存中的 Markdown 代码围栏。
 - README、Progress、核心新增代码注释统一使用中文。
 - 新增 theorem standalone 抽取：保留 imports、namespace 和目标定理，并在编译不一致时自动 fallback。
 - 新增有界贪心 import 删除；每次删除都重新编译并比较诊断键。
@@ -30,7 +31,7 @@
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试 36/36：包含模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、Lean Action 仅安装模式、gallery、manifest、索引输出、路径清理和复核账本检查；`lake build` 通过。
+- 完整 Python 测试 39/39：包含文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、Lean Action 仅安装模式、gallery、manifest、索引输出、路径清理和复核账本检查；`lake build` 通过。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 
 ## 明确边界
