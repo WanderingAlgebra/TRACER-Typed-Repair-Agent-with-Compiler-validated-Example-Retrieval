@@ -12,6 +12,7 @@ TRACER 是一个由 Lean 编译器验证的证明修复与失败工件工具。L
 建议在已经安装 Lean、Lake 和 Python 的环境中运行：
 
 ```powershell
+python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 lake build
 ```
@@ -31,17 +32,20 @@ python -m leancapsule pack `
 ```powershell
 python -m leancapsule replay capsules/std/unknown-identifier
 python -m leancapsule verify capsules
+python -m leancapsule audit capsules
 python -m leancapsule issue capsules/std/unknown-identifier --out issue.md
 python -m leancapsule gallery capsules --out capsules/index.json
 ```
 
-四个命令都输出机器可读 JSON；`replay` 和 `verify` 会用进程退出码表示是否通过。
+所有命令都输出机器可读 JSON；`replay`、`verify`、`audit` 和 `gallery` 会用进程退出码表示是否通过。Mathlib 冷启动可能需要较长时间，因此回放默认超时为 180 秒。
 
 使用 `--theorem` 时，工具会先尝试保留 imports、namespace 和目标定理的 standalone 文件；如果编译结果与原始诊断不一致，就自动退回完整文件。standalone 成功后会在固定编译预算内逐个尝试删除 imports，也可以使用 `--no-minimize-imports` 关闭。
 
 ## 公开失败 gallery
 
-仓库当前包含 24 个可回放 capsule，覆盖四类失败：`Name / import`、`Type / application`、`Elaboration / instance` 和 `Goal / scope`，每类至少 3 个；来源覆盖 Std、Mathlib 和 project-local，每类来源至少 4 个。`capsules/index.json`、`capsules/index.csv` 和 `capsules/index.md` 是由 CLI 生成的三种 gallery 索引，`capsules/MANUAL_REVIEW.csv` 记录每个案例的自动回放状态与人工复核栏位。
+仓库当前包含 24 个可回放 capsule，覆盖四类失败：`Name / import`、`Type / application`、`Elaboration / instance` 和 `Goal / scope`，每类至少 3 个；来源覆盖 Std、Mathlib 和 project-local，每类来源至少 4 个。`capsules/index.json`、`capsules/index.csv` 和 `capsules/index.md` 是由 CLI 生成的三种 gallery 索引，`capsules/MANUAL_REVIEW.csv` 记录逐案例的语义、来源和敏感内容复核结论。
+
+发布审计会检查必需文件、manifest、冻结分类、来源许可、绝对本机路径、疑似敏感凭据、成功案例中的未完成证明以及复核台账完整性。CI 会在构建和全量回放前强制运行该审计。
 
 Mathlib 案例使用独立的 `mathlib_project/` 依赖工程。首次回放前请执行：
 

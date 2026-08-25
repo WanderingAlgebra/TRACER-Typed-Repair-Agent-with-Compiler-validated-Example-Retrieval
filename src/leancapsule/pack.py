@@ -75,6 +75,20 @@ def _write_scripts(out: Path) -> None:
         "#!/usr/bin/env sh\nset -eu\npython -m leancapsule replay .\n",
         encoding="utf-8",
     )
+
+
+def _public_diagnostics(text: str, source_file: Path, project_root: Path | None, capsule_root: Path) -> str:
+    """保留原始编译器消息，同时移除不能进入公开工件的本机路径。"""
+
+    cleaned = text.replace(str(source_file), source_file.name)
+    cleaned = cleaned.replace(str(capsule_root), "<capsule>")
+    if project_root:
+        cleaned = cleaned.replace(str(project_root), "<project>")
+    cleaned = re.sub(r"(?m)^[A-Za-z]:[\\/].+?(?=:\d+:\d+:\s*(?:error|warning))", source_file.name, cleaned)
+    cleaned = re.sub(r"(?m)^/(?:home|Users|tmp|private|var/tmp)/.+?(?=:\d+:\d+:\s*(?:error|warning))", source_file.name, cleaned)
+    cleaned = re.sub(r"(?mi)^[A-Za-z]:[\\/].*$", "<search-path>", cleaned)
+    cleaned = re.sub(r"(?m)^/(?:home|Users|tmp|private|var/tmp)/.*$", "<search-path>", cleaned)
+    return cleaned
     (out / "replay.ps1").write_text(
         "[CmdletBinding()] param()\n$ErrorActionPreference = 'Stop'\npython -m leancapsule replay .\nexit $LASTEXITCODE\n",
         encoding="utf-8",
@@ -219,7 +233,8 @@ def pack_capsule(
     if errors:
         raise ValueError("manifest 校验失败: " + "; ".join(errors))
     (out / "capsule.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    (out / "expected-diagnostic.txt").write_text(original_result.diagnostics or "Lean 编译通过。\n", encoding="utf-8")
+    public_diagnostics = _public_diagnostics(original_result.diagnostics, source_file, lake_root, out)
+    (out / "expected-diagnostic.txt").write_text(public_diagnostics or "Lean 编译通过。\n", encoding="utf-8")
     (out / "README.md").write_text(
         f"# {out.name}\n\n"
         f"目标文件：`{source_file.name}`\n\n"

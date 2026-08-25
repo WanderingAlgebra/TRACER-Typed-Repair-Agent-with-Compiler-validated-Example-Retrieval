@@ -1,4 +1,4 @@
-C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\goal_invalid_end.lean:5:0: error: Invalid name after `end`: Expected `Demo`, but found `Other`
+Capsule.lean:5:0: error: Invalid name after `end`: Expected `Demo`, but found `Other`
 
 Hint: Use current scope name `Demo`:
   end O̵t̵h̵e̵r̵D̲e̲m̲o̲

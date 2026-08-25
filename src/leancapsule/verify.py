@@ -7,7 +7,7 @@ from pathlib import Path
 from .replay import replay_capsule
 
 
-def verify_directory(root: Path, timeout: float = 20.0) -> dict:
+def verify_directory(root: Path, timeout: float = 180.0) -> dict:
     """递归寻找 capsule.json，返回逐项与汇总状态。"""
 
     capsules = sorted({path.parent for path in root.rglob("capsule.json")})

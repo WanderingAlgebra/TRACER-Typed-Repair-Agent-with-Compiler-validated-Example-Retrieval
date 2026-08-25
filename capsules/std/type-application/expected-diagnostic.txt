@@ -1,4 +1,4 @@
-C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\type_application.lean:4:26: error: Application type mismatch: The argument
+Capsule.lean:4:26: error: Application type mismatch: The argument
   True
 has type
   Prop

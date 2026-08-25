@@ -33,9 +33,9 @@
     "budget_exhausted": false
   },
   "provenance": {
-    "license": "未声明",
+    "license": "MIT",
     "source_url": null,
-    "notes": "由 pack 命令生成，请人工补充来源。"
+    "notes": "仓库内构造的成功回放校准案例。"
   },
   "replay": {
     "file": "Capsule.lean",

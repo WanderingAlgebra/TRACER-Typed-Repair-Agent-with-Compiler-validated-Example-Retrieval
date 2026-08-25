@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .issue import render_issue
 from .gallery import build_gallery_index, write_gallery_reports
+from .audit import audit_directory
 from .pack import pack_capsule
 from .replay import replay_capsule
 from .verify import verify_directory
@@ -33,10 +34,10 @@ def build_parser() -> argparse.ArgumentParser:
     pack.add_argument("--notes", default="由 pack 命令生成，请人工补充来源。")
     replay = sub.add_parser("replay", help="回放单个 capsule")
     replay.add_argument("capsule", type=Path)
-    replay.add_argument("--timeout", type=float, default=60.0)
+    replay.add_argument("--timeout", type=float, default=180.0)
     verify = sub.add_parser("verify", help="批量验证 capsule")
     verify.add_argument("directory", type=Path)
-    verify.add_argument("--timeout", type=float, default=60.0)
+    verify.add_argument("--timeout", type=float, default=180.0)
     issue = sub.add_parser("issue", help="生成 issue Markdown")
     issue.add_argument("capsule", type=Path)
     issue.add_argument("--out", type=Path, required=True)
@@ -45,6 +46,8 @@ def build_parser() -> argparse.ArgumentParser:
     gallery.add_argument("--out", type=Path, required=True)
     gallery.add_argument("--csv", dest="csv_out", type=Path)
     gallery.add_argument("--markdown", dest="markdown_out", type=Path)
+    audit = sub.add_parser("audit", help="执行公开 capsule 的发布前静态审计")
+    audit.add_argument("directory", type=Path)
     return parser
 
 
@@ -71,6 +74,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "gallery":
             result = build_gallery_index(args.directory)
             write_gallery_reports(result, args.out, args.csv_out, args.markdown_out)
+            print(json.dumps(result, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if args.command == "audit":
+            result = audit_directory(args.directory)
             print(json.dumps(result, ensure_ascii=False))
             return 0 if result.get("ok") else 1
     except Exception as exc:

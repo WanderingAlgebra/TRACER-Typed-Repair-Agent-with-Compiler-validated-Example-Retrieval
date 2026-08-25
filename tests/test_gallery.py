@@ -8,10 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from leancapsule.gallery import build_gallery_index, write_gallery_reports
-from leancapsule.schema import validate_manifest
+from leancapsule.audit import audit_directory
+from leancapsule.schema import validate_json_schema, validate_manifest
 
 
 class GalleryTest(unittest.TestCase):
+    def test_release_audit_passes(self):
+        result = audit_directory(ROOT / "capsules")
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["reviewed"], result["total"])
+
     def test_gallery_meets_coverage_requirements(self):
         index = build_gallery_index(ROOT / "capsules")
         self.assertTrue(index["ok"], index)
@@ -21,6 +27,7 @@ class GalleryTest(unittest.TestCase):
         for path in (ROOT / "capsules").rglob("capsule.json"):
             manifest = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(validate_manifest(manifest), [])
+            self.assertEqual(validate_json_schema(manifest), [])
             self.assertNotIn(str(ROOT).lower(), json.dumps(manifest, ensure_ascii=False).lower())
 
     def test_manual_review_ledger_covers_gallery(self):

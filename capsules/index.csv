@@ -6,7 +6,7 @@ type-prime-statement,mathlib/type-prime-statement,Type / application,mathlib,typ
 elab-local,project_local/elab-local,Elaboration / instance,project_local,compile_error,full_file_fallback
 goal-local,project_local/goal-local,Goal / scope,project_local,unsolved_goals,full_file_fallback
 local-failure,project_local/local-failure,Goal / scope,project_local,compile_error,full_file_fallback
-multi-file-local,project_local/multi-file-local,Type / application,project_local,compile_error,full_file_fallback
+multi-file-local,project_local/multi-file-local,Name / import,project_local,compile_error,full_file_fallback
 name-local,project_local/name-local,Name / import,project_local,unknown_identifier,full_file_fallback
 type-local,project_local/type-local,Type / application,project_local,type_mismatch,full_file_fallback
 elab-coercion,std/elab-coercion,Elaboration / instance,std,type_mismatch,full_file_fallback

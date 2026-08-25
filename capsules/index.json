@@ -4,8 +4,8 @@
   "taxonomy_counts": {
     "Elaboration / instance": 5,
     "Goal / scope": 7,
-    "Name / import": 6,
-    "Type / application": 6
+    "Name / import": 7,
+    "Type / application": 5
   },
   "source_counts": {
     "mathlib": 4,
@@ -78,7 +78,7 @@
     {
       "capsule_id": "multi-file-local",
       "path": "project_local/multi-file-local",
-      "taxonomy": "Type / application",
+      "taxonomy": "Name / import",
       "source_kind": "project_local",
       "category": "compile_error",
       "extraction_mode": "full_file_fallback"

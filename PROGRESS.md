@@ -18,16 +18,20 @@
 - 生成 `capsules/index.json`，四类 taxonomy 和三类来源均达到 gallery 覆盖门槛。
 - 同步生成 `capsules/index.csv` 和 `capsules/index.md`，便于表格分析与 GitHub 浏览。
 - 增加 `capsules/MANUAL_REVIEW.csv`，逐 capsule 登记自动回放与人工复核状态。
+- 新增 `leancapsule audit` 发布审计，检查布局、许可、本机路径、敏感内容、成功证明和复核台账。
+- 发布审计同时使用 `capsule_schema/leancapsule-v0.1.schema.json` 执行 Draft 2020-12 结构校验。
+- 清理全部公开诊断中的本机绝对路径，补齐旧案例许可，并完成 24 个案例的仓库级逐项复核。
+- 将 Mathlib 冷启动回放预算调整为 180 秒，并避免环境脚本重复获取已存在的预编译缓存。
 
 ## 当前验证状态
 
-- `leancapsule verify capsules`：24/24 通过（Std 12、Mathlib 4、project-local 5）。
+- `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
-- 完整 Python 测试 29/29：包含 gallery、manifest、索引输出和人工复核账本检查；`lake build` 通过。
+- `leancapsule audit capsules`：24/24 通过，无发布审计错误。
+- 完整 Python 测试 30/30：包含 gallery、manifest、索引输出、路径清理和复核账本检查；`lake build` 通过。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 
-## 尚需人工完成的事项
+## 明确边界
 
-- `capsules/MANUAL_REVIEW.csv` 已覆盖全部 capsule，但 `kernel_pass`、`assumption_risk` 和 `leakage_risk` 仍需研究者逐项确认。
 - capsule gallery 验收的是失败复现协议，不等同于真实模型 A/B/C 实验；模型实验需另行配置 provider、冻结模型参数并记录 token、延迟和编译次数。
 - 多文件依赖目前采用完整文件 fallback 与显式本地文件清单，不承诺任意项目的程序切片。

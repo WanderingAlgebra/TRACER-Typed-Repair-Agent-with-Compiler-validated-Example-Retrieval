@@ -31,12 +31,12 @@
     "reason": "保留完整源文件以保证上下文不丢失",
     "compile_attempts": 1
   },
-  "taxonomy": "Type / application",
+  "taxonomy": "Name / import",
   "source_kind": "project_local",
   "provenance": {
     "license": "MIT",
     "source_url": null,
-    "notes": "包含可复制的本地模块依赖。"
+    "notes": "刻意展示缺失本地模块构建产物时的 import 失败；不宣称完成任意多文件切片。"
   },
   "replay": {
     "file": "Capsule.lean",

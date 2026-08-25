@@ -1,4 +1,4 @@
-C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\lean_project\ProjectLocal\LocalElabFailure.lean:6:2: error: type class instance expected
+Capsule.lean:6:2: error: type class instance expected
   α
-C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\lean_project\ProjectLocal\LocalElabFailure.lean:5:0: error: type of theorem `ProjectLocal.local_elab_failure` is not a proposition
+Capsule.lean:5:0: error: type of theorem `ProjectLocal.local_elab_failure` is not a proposition
   {α : Type} → α

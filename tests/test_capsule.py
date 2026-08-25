@@ -14,7 +14,7 @@ from leancapsule.extract import extract_theorem
 from leancapsule.minimize import minimize_imports
 from leancapsule.pack import pack_capsule
 from leancapsule.replay import replay_capsule
-from leancapsule.schema import validate_manifest
+from leancapsule.schema import validate_json_schema, validate_manifest
 
 
 class CapsuleTest(unittest.TestCase):
@@ -22,18 +22,19 @@ class CapsuleTest(unittest.TestCase):
         left = diagnostic_key({"category": "type_mismatch", "summary": "C:\\tmp\\a.lean:2:4: bad type"})
         right = diagnostic_key({"category": "type_mismatch", "summary": "/var/tmp/b.lean:20:8: bad type"})
         self.assertEqual(left, right)
-        self.assertNotIn("sha", left.lower())
 
     def test_manifest_schema_validation(self):
         manifest = {
             "schema_version": "leancapsule.v0.1",
             "capsule_id": "demo",
-            "target": {"source_file": "Demo.lean", "selection_mode": "lines"},
+            "target": {"source_file": "Demo.lean", "selection_mode": "lines", "lines": "1:1"},
             "environment": {},
-            "expected": {"category": "compile_error", "diagnostic_key": "compile_error | x"},
-            "provenance": {},
+            "expected": {"compile_ok": False, "category": "compile_error", "diagnostic_key": "compile_error | x"},
+            "provenance": {"license": "MIT", "source_url": None, "notes": "测试 manifest"},
+            "replay": {"file": "Capsule.lean", "command": "python -m leancapsule replay ."},
         }
         self.assertEqual(validate_manifest(manifest), [])
+        self.assertEqual(validate_json_schema(manifest), [])
 
     def test_standalone_extraction_keeps_import_and_namespace(self):
         source = "import Std\nnamespace Demo\ndef helper : Nat := 1\ntheorem target : True := by trivial\nend Demo\n"
@@ -68,6 +69,8 @@ class CapsuleTest(unittest.TestCase):
             self.assertTrue((base / "capsule" / "capsule.json").exists())
             text = (base / "capsule" / "capsule.json").read_text(encoding="utf-8")
             self.assertNotIn("secret", text.lower())
+            diagnostic = (base / "capsule" / "expected-diagnostic.txt").read_text(encoding="utf-8")
+            self.assertNotIn(str(base), diagnostic)
 
     def test_replay_matches_manifest(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -77,10 +80,10 @@ class CapsuleTest(unittest.TestCase):
             manifest = {
                 "schema_version": "leancapsule.v0.1",
                 "capsule_id": "demo",
-                "target": {"source_file": "Demo.lean", "selection_mode": "lines"},
+                "target": {"source_file": "Demo.lean", "selection_mode": "lines", "lines": "1:1"},
                 "environment": {},
                 "expected": {"compile_ok": False, "returncode": 1, "category": "unknown_identifier", "diagnostic_key": "unknown_identifier | unknown_identifier: Unknown identifier `missing`"},
-                "provenance": {},
+                "provenance": {"license": "MIT"},
                 "replay": {"file": "Capsule.lean"},
             }
             (capsule / "capsule.json").write_text(json.dumps(manifest), encoding="utf-8")

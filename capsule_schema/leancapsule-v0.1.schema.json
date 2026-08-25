@@ -3,7 +3,7 @@
   "$id": "https://example.org/leancapsule-v0.1.schema.json",
   "title": "LeanCapsule manifest",
   "type": "object",
-  "required": ["schema_version", "capsule_id", "target", "environment", "expected", "provenance"],
+  "required": ["schema_version", "capsule_id", "target", "environment", "expected", "provenance", "replay"],
   "properties": {
     "schema_version": {"const": "leancapsule.v0.1"},
     "capsule_id": {"type": "string", "minLength": 1},
@@ -17,7 +17,16 @@
         "selection_mode": {"enum": ["theorem", "lines"]}
       }
     },
-    "environment": {"type": "object"},
+    "environment": {
+      "type": "object",
+      "properties": {
+        "lean_toolchain": {"type": ["string", "null"]},
+        "lake_manifest_present": {"type": "boolean"},
+        "lakefile_present": {"type": "boolean"},
+        "local_files": {"type": "array", "items": {"type": "string"}},
+        "dependency_project": {"type": ["string", "null"]}
+      }
+    },
     "expected": {
       "type": "object",
       "required": ["compile_ok", "category", "diagnostic_key"],
@@ -28,6 +37,24 @@
       }
     },
     "minimization": {"type": "object"},
-    "provenance": {"type": "object"}
+    "taxonomy": {"enum": ["Name / import", "Type / application", "Elaboration / instance", "Goal / scope", null]},
+    "source_kind": {"enum": ["std", "mathlib", "project_local", null]},
+    "provenance": {
+      "type": "object",
+      "required": ["license", "source_url", "notes"],
+      "properties": {
+        "license": {"type": "string", "minLength": 1},
+        "source_url": {"type": ["string", "null"]},
+        "notes": {"type": "string"}
+      }
+    },
+    "replay": {
+      "type": "object",
+      "required": ["file", "command"],
+      "properties": {
+        "file": {"type": "string", "minLength": 1},
+        "command": {"type": "string", "minLength": 1}
+      }
+    }
   }
 }

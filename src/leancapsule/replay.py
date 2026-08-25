@@ -12,7 +12,7 @@ from .diagnostics_key import diagnostic_key
 from .schema import validate_manifest
 
 
-def replay_capsule(capsule: Path, timeout: float = 20.0) -> dict:
+def replay_capsule(capsule: Path, timeout: float = 180.0) -> dict:
     """编译 Capsule.lean，并返回可供脚本消费的 JSON 结果。"""
 
     capsule = capsule.resolve()

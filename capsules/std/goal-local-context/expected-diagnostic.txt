@@ -1,1 +1,1 @@
-C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\goal_local_context.lean:6:8: error(lean.unknownIdentifier): Unknown identifier `hp`
+Capsule.lean:6:8: error(lean.unknownIdentifier): Unknown identifier `hp`

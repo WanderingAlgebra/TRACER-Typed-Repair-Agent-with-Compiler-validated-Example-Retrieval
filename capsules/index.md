@@ -12,7 +12,7 @@
 | `elab-local` | `project_local` | Elaboration / instance | `compile_error` | `full_file_fallback` |
 | `goal-local` | `project_local` | Goal / scope | `unsolved_goals` | `full_file_fallback` |
 | `local-failure` | `project_local` | Goal / scope | `compile_error` | `full_file_fallback` |
-| `multi-file-local` | `project_local` | Type / application | `compile_error` | `full_file_fallback` |
+| `multi-file-local` | `project_local` | Name / import | `compile_error` | `full_file_fallback` |
 | `name-local` | `project_local` | Name / import | `unknown_identifier` | `full_file_fallback` |
 | `type-local` | `project_local` | Type / application | `type_mismatch` | `full_file_fallback` |
 | `elab-coercion` | `std` | Elaboration / instance | `type_mismatch` | `full_file_fallback` |

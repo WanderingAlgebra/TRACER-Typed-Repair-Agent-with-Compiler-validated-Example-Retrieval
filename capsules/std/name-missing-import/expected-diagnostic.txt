@@ -1,6 +1,6 @@
-C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\name_missing_import.lean:1:0: error: unknown module prefix 'Definitely'
+Capsule.lean:1:0: error: unknown module prefix 'Definitely'
 
 No directory 'Definitely' or file 'Definitely.olean' in the search path entries:
-C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\.lake\build\lib\lean
-c:\Users\王润祺\.elan\toolchains\leanprover--lean4---v4.32.0\lib\lean
-c:\Users\王润祺\.elan\toolchains\leanprover--lean4---v4.32.0\lib\lean
+<search-path>
+<search-path>
+<search-path>
