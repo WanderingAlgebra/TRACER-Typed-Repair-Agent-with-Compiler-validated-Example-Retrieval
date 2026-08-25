@@ -14,7 +14,7 @@ from pathlib import Path
 from cache import RequestCache
 from compiler import compile_candidate, declaration_scope
 from diagnostics import normalize_diagnostics
-from provider import Generation, build_provider
+from provider import Generation, build_provider, clean_candidate
 from retriever import load_examples, retrieve
 
 
@@ -134,7 +134,8 @@ def solve_problem(
                 except Exception as exc:
                     provider_error = str(exc)
                     generation = Generation("", {}, provider.name, {"error": provider_error})
-            candidate = generation.candidate.strip()
+            # 也清洗缓存中的旧候选，避免历史 Markdown 围栏继续导致语法错误。
+            candidate = clean_candidate(generation.candidate)
             last_candidate = candidate
             if provider_error:
                 diagnostic = {"category": "provider_error", "summary": provider_error[:700], "feedback": "模型 provider 调用失败，请检查 provider 配置或服务状态。", "errors": [], "truncated": len(provider_error) > 700}
@@ -191,6 +192,8 @@ def solve_problem(
             }
             append_jsonl(log_path, record)
             final_result = record
+            if provider_error:
+                break
             if compile_ok:
                 output_path = output_dir / condition / f"{safe_name(source_path.stem)}__{safe_name(theorem_name)}.lean"
                 output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -239,6 +242,8 @@ def main() -> int:
         api_key = None
         if args.api_key_prompt:
             api_key = getpass.getpass("API key（不会回显）：").strip()
+            suffix = api_key[-4:] if len(api_key) >= 4 else "不足四位"
+            print(f"已读取 API key：长度={len(api_key)}，末四位={suffix}", file=sys.stderr)
         elif args.api_key_stdin:
             api_key = sys.stdin.read().strip()
         provider = build_provider(
@@ -252,7 +257,17 @@ def main() -> int:
             max_tokens=args.max_tokens,
         )
         result = solve_problem(args.file.resolve(), args.theorem, args.condition, provider, args.max_rounds, args.timeout, args.examples_dir.resolve(), args.cache.resolve(), args.output_dir.resolve(), args.log.resolve(), args.start_marker, args.end_marker, args.placeholder)
-        print(json.dumps({"compile_ok": result["compile_ok"], "round": result["round"], "condition": result["condition"], "provider": result["provider"]}, ensure_ascii=False))
+        response = {
+            "compile_ok": result["compile_ok"],
+            "round": result["round"],
+            "condition": result["condition"],
+            "provider": result["provider"],
+        }
+        if not result["compile_ok"]:
+            response["diagnostic"] = result.get("diagnostic", {})
+            if result.get("provider_error"):
+                response["provider_error"] = result["provider_error"]
+        print(json.dumps(response, ensure_ascii=False))
         return 0 if result["compile_ok"] else 1
     return 2
 

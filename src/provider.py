@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 
@@ -91,8 +93,13 @@ class OpenAICompatibleProvider(Provider):
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=90) as response:
-            body = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            response_body = exc.read().decode("utf-8", errors="replace").strip()
+            detail = response_body[:2000] if response_body else str(exc.reason)
+            raise RuntimeError(f"HTTP {exc.code} from provider: {detail}") from exc
         return parse_generation(json.dumps(body, ensure_ascii=False), self.name)
 
     def metadata(self) -> dict[str, object]:
@@ -121,19 +128,26 @@ class MockProvider(Provider):
         return {"provider": self.name, "test_only": True, **configured_pricing()}
 
 
+def clean_candidate(text: str) -> str:
+    """提取模型输出中的 Lean 代码，兼容常见 Markdown 代码围栏。"""
+    candidate = text.strip()
+    fenced = re.search(r"```(?:lean4?|text)?\s*\n?(.*?)```", candidate, flags=re.IGNORECASE | re.DOTALL)
+    return (fenced.group(1) if fenced else candidate).strip()
+
+
 def parse_generation(text: str, provider_name: str) -> Generation:
     try:
         body = json.loads(text)
     except json.JSONDecodeError:
-        return Generation(text.strip(), {}, provider_name)
+        return Generation(clean_candidate(text), {}, provider_name)
     if "candidate" in body:
-        return Generation(str(body["candidate"]).strip(), body.get("usage", {}), provider_name, body)
+        return Generation(clean_candidate(str(body["candidate"])), body.get("usage", {}), provider_name, body)
     choices = body.get("choices") or []
     if choices:
         content = choices[0].get("message", {}).get("content", "")
-        return Generation(str(content).strip(), body.get("usage", {}), provider_name, body)
+        return Generation(clean_candidate(str(content)), body.get("usage", {}), provider_name, body)
     if "output_text" in body:
-        return Generation(str(body["output_text"]).strip(), body.get("usage", {}), provider_name, body)
+        return Generation(clean_candidate(str(body["output_text"])), body.get("usage", {}), provider_name, body)
     raise ValueError("provider 输出缺少 candidate/choices/output_text")
 
 

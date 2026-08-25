@@ -56,7 +56,7 @@ class AgentEndToEndTest(unittest.TestCase):
                 self.source_path,
                 "Eval18.and_swap_eval",
                 "A",
-                MockProvider("by\n  intro h\n  exact And.intro h.right h.left"),
+                MockProvider("```lean\nby\n  intro h\n  exact And.intro h.right h.left\n```"),
                 1,
                 LEAN_TIMEOUT,
                 ROOT / "examples",
