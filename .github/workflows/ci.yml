@@ -12,9 +12,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      # 测试套件包含真实 Lean 编译端到端测试，因此必须先安装工具链。
+      # 此处只安装工具链；项目构建由后面的显式步骤负责。
       - name: Install Lean
         uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          use-github-cache: false
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
       - name: Run tests

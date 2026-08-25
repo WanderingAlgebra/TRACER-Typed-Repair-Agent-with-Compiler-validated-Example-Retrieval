@@ -29,7 +29,7 @@
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试 31/31：包含 CI 顺序、gallery、manifest、索引输出、路径清理和复核账本检查；`lake build` 通过。
+- 完整 Python 测试 32/32：包含 CI 顺序、Lean Action 仅安装模式、gallery、manifest、索引输出、路径清理和复核账本检查；`lake build` 通过。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 
 ## 明确边界
