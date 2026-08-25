@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 import tempfile
 import time
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass
@@ -45,13 +49,27 @@ def find_project_root(path: Path) -> Path | None:
     return None
 
 
+def _direct_lean_command(path: Path) -> list[str]:
+    """为非 Lake 文件选择显式工具链，避免依赖机器的默认 Elan 配置。"""
+
+    resolved = path.resolve()
+    start = resolved if resolved.is_dir() else resolved.parent
+    candidates = [*(parent / "lean-toolchain" for parent in (start, *start.parents)), REPOSITORY_ROOT / "lean-toolchain"]
+    toolchain_file = next((candidate for candidate in candidates if candidate.exists()), None)
+    if toolchain_file is not None and shutil.which("elan"):
+        toolchain = toolchain_file.read_text(encoding="utf-8").strip()
+        if toolchain:
+            return ["elan", "run", toolchain, "lean", str(path)]
+    return ["lean", str(path)]
+
+
 def lean_command(path: Path, project_root: Path | None = None) -> list[str]:
     root = project_root or find_project_root(path)
     # capsule 的 lakefile 只用于记录来源；没有本地构建目录时直接调用 Lean，
     # 避免 Lake 为不存在的项目目标反复解析配置或等待网络。
     if root and (root / "capsule.json").exists() and not (root / ".lake").exists():
-        return ["lean", str(path)]
-    return ["lake", "env", "lean", str(path)] if root else ["lean", str(path)]
+        return _direct_lean_command(path)
+    return ["lake", "env", "lean", str(path)] if root else _direct_lean_command(path)
 
 
 def run_lean_file(path: Path, timeout: float = 20.0, project_root: Path | None = None) -> FileCompileResult:
@@ -183,7 +201,7 @@ def compile_candidate(
                 if user_profile and (Path(user_profile) / ".elan").exists():
                     environment["ELAN_HOME"] = str(Path(user_profile) / ".elan")
             project_root = next((parent for parent in (source_path.parent, *source_path.parent.parents) if (parent / "lakefile.toml").exists()), None)
-            command = ["lake", "env", "lean", str(temp_path)] if project_root else ["lean", str(temp_path)]
+            command = ["lake", "env", "lean", str(temp_path)] if project_root else _direct_lean_command(temp_path)
             process = subprocess.run(
                 command,
                 cwd=project_root or source_path.parent,
