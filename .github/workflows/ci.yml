@@ -20,12 +20,13 @@ jobs:
           use-github-cache: false
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
+      # 端到端测试会调用 Lake 环境，先完成一次项目构建并预热编译环境。
+      - name: Build Lean project
+        run: lake build
       - name: Run tests
         run: python -m unittest discover -s tests -v
       - name: Audit public capsules
         run: python -m leancapsule audit capsules
-      - name: Build Lean project
-        run: lake build
       - name: Prepare Mathlib dependency project
         shell: bash
         run: bash scripts/setup_mathlib.sh

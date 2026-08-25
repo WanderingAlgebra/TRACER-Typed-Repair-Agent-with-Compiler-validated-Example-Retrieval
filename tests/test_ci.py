@@ -10,6 +10,10 @@ class ContinuousIntegrationTest(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         self.assertLess(workflow.index("- name: Install Lean"), workflow.index("- name: Run tests"))
 
+    def test_lean_project_is_built_before_end_to_end_tests(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertLess(workflow.index("- name: Build Lean project"), workflow.index("- name: Run tests"))
+
     def test_lean_action_only_installs_toolchain(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         install_block = workflow.split("- name: Install Lean", 1)[1].split(
