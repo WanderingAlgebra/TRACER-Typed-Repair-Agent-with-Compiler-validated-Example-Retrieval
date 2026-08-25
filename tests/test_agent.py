@@ -4,13 +4,14 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from agent import prompt_for, solve_problem
 from cache import RequestCache
-from compiler import compile_candidate
+from compiler import compile_candidate, lean_command
 from provider import Generation, MockProvider
 
 
@@ -168,6 +169,15 @@ class AgentEndToEndTest(unittest.TestCase):
                 base / "runs.jsonl",
             )
             self.assertTrue(result["compile_ok"], result)
+
+    def test_external_file_uses_repository_toolchain(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "input.lean"
+            source_path.write_text("import Std\nexample : True := by trivial\n", encoding="utf-8")
+            with patch("compiler.shutil.which", return_value="elan"):
+                command = lean_command(source_path)
+            expected_toolchain = (ROOT / "lean-toolchain").read_text(encoding="utf-8").strip()
+            self.assertEqual(command[:4], ["elan", "run", expected_toolchain, "lean"])
 
 
 class CacheTest(unittest.TestCase):
