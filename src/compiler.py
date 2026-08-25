@@ -1,4 +1,4 @@
-"""Generic Lean source patching and kernel compilation."""
+"""通用 Lean 源码补丁与内核编译。"""
 
 from __future__ import annotations
 
@@ -20,6 +20,78 @@ class CompileResult:
     timed_out: bool = False
     returncode: int | None = None
     compiler_command: list[str] | None = None
+
+
+@dataclass
+class FileCompileResult:
+    """直接编译已有 Lean 文件的结果。"""
+
+    ok: bool
+    elapsed_ms: float
+    diagnostics: str
+    timed_out: bool = False
+    returncode: int | None = None
+    compiler_command: list[str] | None = None
+
+
+def find_project_root(path: Path) -> Path | None:
+    """寻找最近的 Lake 项目根目录。"""
+
+    resolved = path.resolve()
+    start = resolved if resolved.is_dir() else resolved.parent
+    for parent in (start, *start.parents):
+        if (parent / "lakefile.toml").exists() or (parent / "lakefile.lean").exists():
+            return parent
+    return None
+
+
+def lean_command(path: Path, project_root: Path | None = None) -> list[str]:
+    root = project_root or find_project_root(path)
+    # capsule 的 lakefile 只用于记录来源；没有本地构建目录时直接调用 Lean，
+    # 避免 Lake 为不存在的项目目标反复解析配置或等待网络。
+    if root and (root / "capsule.json").exists() and not (root / ".lake").exists():
+        return ["lean", str(path)]
+    return ["lake", "env", "lean", str(path)] if root else ["lean", str(path)]
+
+
+def run_lean_file(path: Path, timeout: float = 20.0, project_root: Path | None = None) -> FileCompileResult:
+    """优先在 Lake 环境中直接编译具体 Lean 文件。"""
+
+    path = path.resolve()
+    root = project_root.resolve() if project_root else find_project_root(path)
+    command = lean_command(path, root)
+    started = time.perf_counter()
+    try:
+        environment = os.environ.copy()
+        if not environment.get("ELAN_HOME"):
+            user_profile = environment.get("USERPROFILE")
+            if user_profile and (Path(user_profile) / ".elan").exists():
+                environment["ELAN_HOME"] = str(Path(user_profile) / ".elan")
+        if root:
+            existing_lean_path = environment.get("LEAN_PATH", "")
+            environment["LEAN_PATH"] = os.pathsep.join(part for part in (str(root), existing_lean_path) if part)
+        process = subprocess.run(
+            command,
+            cwd=root or path.parent,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+            env=environment,
+        )
+    except subprocess.TimeoutExpired as exc:
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
+        stdout = exc.stdout or ""
+        stderr = exc.stderr or ""
+        return FileCompileResult(False, elapsed_ms, f"Lean 编译超时（{timeout:g}s）\n{stdout}\n{stderr}".strip(), True, None, command)
+    except FileNotFoundError as exc:
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
+        return FileCompileResult(False, elapsed_ms, f"编译器不可用: {exc}", False, None, command)
+    elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
+    diagnostics = "\n".join(part for part in [process.stdout, process.stderr] if part).strip()
+    return FileCompileResult(process.returncode == 0, elapsed_ms, diagnostics, False, process.returncode, command)
 
 
 def _namespace_before(source: str, position: int) -> str | None:

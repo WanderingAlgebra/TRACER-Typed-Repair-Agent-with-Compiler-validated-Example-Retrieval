@@ -1,0 +1,25 @@
+capsule_id,taxonomy,source_kind,replay_pass,kernel_pass,assumption_risk,leakage_risk,review_status,reviewer_note
+elab-prime-instance,Elaboration / instance,mathlib,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+goal-prime-proof,Goal / scope,mathlib,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+name-prime-api,Name / import,mathlib,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+type-prime-statement,Type / application,mathlib,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+elab-local,Elaboration / instance,project_local,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+goal-local,Goal / scope,project_local,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+local-failure,Goal / scope,project_local,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+multi-file-local,Type / application,project_local,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认多文件依赖
+name-local,Name / import,project_local,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+type-local,Type / application,project_local,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+elab-coercion,Elaboration / instance,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+elab-instance,Elaboration / instance,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+elab-metavariable,Elaboration / instance,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+evaluation18,Type / application,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,仅作为成功回放校准样例
+goal-invalid-end,Goal / scope,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+goal-local-context,Goal / scope,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+goal-unsolved,Goal / scope,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+name-missing-import,Name / import,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+name-namespace,Name / import,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+name-unknown-identifier,Name / import,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+type-application,Type / application,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+type-implicit-argument,Type / application,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+type-mismatch,Type / application,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义
+unknown-identifier,Name / import,std,true,not_checked,not_checked,not_checked,automatic_replay_pass,需人工确认来源与语义

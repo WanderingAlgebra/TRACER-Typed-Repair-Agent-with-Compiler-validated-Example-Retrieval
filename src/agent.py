@@ -1,8 +1,9 @@
-"""Production solve CLI and the real A/B/C proof-repair loop."""
+"""生产级求解 CLI 与真实的 A/B/C 证明修复循环。"""
 
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import re
 import sys
@@ -220,6 +221,12 @@ def main() -> int:
     solve.add_argument("--provider", choices=["command", "openai_compatible", "mock"], required=True)
     solve.add_argument("--provider-command")
     solve.add_argument("--mock-candidate")
+    solve.add_argument("--api-url", help="本次运行使用的 OpenAI 兼容接口地址")
+    solve.add_argument("--model", help="本次运行使用的模型名称")
+    solve.add_argument("--api-key-prompt", action="store_true", help="在终端安全地输入 API 密钥，不回显且不写入日志")
+    solve.add_argument("--api-key-stdin", action="store_true", help="从标准输入读取 API 密钥，不写入日志")
+    solve.add_argument("--temperature", type=float)
+    solve.add_argument("--max-tokens", type=int)
     solve.add_argument("--examples-dir", type=Path, default=ROOT / "examples")
     solve.add_argument("--cache", type=Path, default=ROOT / "results" / "requests.sqlite3")
     solve.add_argument("--output-dir", type=Path, default=ROOT / "results" / "solutions")
@@ -229,7 +236,21 @@ def main() -> int:
     solve.add_argument("--placeholder", default="sorry")
     args = parser.parse_args()
     if args.command == "solve":
-        provider = build_provider(args.provider, args.provider_command, args.mock_candidate)
+        api_key = None
+        if args.api_key_prompt:
+            api_key = getpass.getpass("API key（不会回显）：").strip()
+        elif args.api_key_stdin:
+            api_key = sys.stdin.read().strip()
+        provider = build_provider(
+            args.provider,
+            args.provider_command,
+            args.mock_candidate,
+            api_url=args.api_url,
+            api_key=api_key,
+            model=args.model,
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+        )
         result = solve_problem(args.file.resolve(), args.theorem, args.condition, provider, args.max_rounds, args.timeout, args.examples_dir.resolve(), args.cache.resolve(), args.output_dir.resolve(), args.log.resolve(), args.start_marker, args.end_marker, args.placeholder)
         print(json.dumps({"compile_ok": result["compile_ok"], "round": result["round"], "condition": result["condition"], "provider": result["provider"]}, ensure_ascii=False))
         return 0 if result["compile_ok"] else 1

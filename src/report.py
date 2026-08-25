@@ -1,4 +1,4 @@
-"""Create evaluation tables, Wilson intervals, plots, and a pilot report."""
+"""生成评测表、Wilson 区间、图表和试验报告。"""
 
 from __future__ import annotations
 

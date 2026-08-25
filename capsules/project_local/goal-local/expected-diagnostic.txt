@@ -1,0 +1,8 @@
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\lean_project\ProjectLocal\LocalGoalFailure.lean:4:49: error: unsolved goals
+case left
+p : Prop
+⊢ p
+
+case right
+p : Prop
+⊢ p

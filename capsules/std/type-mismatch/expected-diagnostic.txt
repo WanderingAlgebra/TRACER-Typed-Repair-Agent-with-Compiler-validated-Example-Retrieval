@@ -1,0 +1,7 @@
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\type_mismatch.lean:3:17: error: Type mismatch
+  True.intro
+has type
+  True
+of sort `Prop` but is expected to have type
+  Nat
+of sort `Type`

@@ -1,0 +1,6 @@
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\mathlib\goal_prime_proof.lean:3:25: error: unsolved goals
+case not_isUnit
+⊢ ¬IsUnit 2
+
+case isUnit_or_isUnit
+⊢ ∀ ⦃a b : ℕ⦄, 2 = a * b → IsUnit a ∨ IsUnit b

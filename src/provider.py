@@ -1,4 +1,4 @@
-"""Model-provider boundary for proof generation."""
+"""证明生成的模型 provider 边界。"""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class Provider:
         raise NotImplementedError
 
     def metadata(self) -> dict[str, object]:
-        """Non-secret configuration used in logs and exact-request cache keys."""
+        """返回可写入日志和精确请求缓存键的非敏感配置。"""
         return {"provider": self.name, **configured_pricing()}
 
 
@@ -107,7 +107,7 @@ class OpenAICompatibleProvider(Provider):
 
 
 class MockProvider(Provider):
-    """Test-only provider; production evaluation must use command or API provider."""
+    """仅用于测试的 provider，正式评测应使用命令或 API provider。"""
 
     name = "mock"
 
@@ -137,16 +137,28 @@ def parse_generation(text: str, provider_name: str) -> Generation:
     raise ValueError("provider 输出缺少 candidate/choices/output_text")
 
 
-def build_provider(name: str, command: str | None = None, mock_candidate: str | None = None) -> Provider:
+def build_provider(
+    name: str,
+    command: str | None = None,
+    mock_candidate: str | None = None,
+    *,
+    api_url: str | None = None,
+    api_key: str | None = None,
+    model: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+) -> Provider:
     if name == "command":
         return CommandProvider(command or os.environ.get("LEAN_PROOF_PROVIDER_COMMAND", ""))
     if name == "openai_compatible":
-        url = os.environ.get("LEAN_PROOF_API_URL", "").strip()
-        key = os.environ.get("LEAN_PROOF_API_KEY", "").strip()
-        model = os.environ.get("LEAN_PROOF_MODEL", "gpt-4.1-mini")
+        url = (api_url or os.environ.get("LEAN_PROOF_API_URL", "")).strip()
+        key = (api_key or os.environ.get("LEAN_PROOF_API_KEY", "")).strip()
+        model_name = model or os.environ.get("LEAN_PROOF_MODEL", "gpt-4.1-mini")
         if not url or not key:
             raise ValueError("openai_compatible 需要 LEAN_PROOF_API_URL 和 LEAN_PROOF_API_KEY")
-        return OpenAICompatibleProvider(url, key, model, float(os.environ.get("LEAN_PROOF_TEMPERATURE", "0")), int(os.environ.get("LEAN_PROOF_MAX_TOKENS", "800")))
+        temperature_value = temperature if temperature is not None else float(os.environ.get("LEAN_PROOF_TEMPERATURE", "0"))
+        max_tokens_value = max_tokens if max_tokens is not None else int(os.environ.get("LEAN_PROOF_MAX_TOKENS", "800"))
+        return OpenAICompatibleProvider(url, key, model_name, temperature_value, max_tokens_value)
     if name == "mock":
         if mock_candidate is None:
             raise ValueError("mock provider 需要 --mock-candidate，仅用于测试")

@@ -1,0 +1,4 @@
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\name_namespace.lean:4:0: warning: Definition `proof` is a proposition; use `theorem` instead of `def`
+
+Note: This linter can be disabled with `set_option linter.defProp false`
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\name_namespace.lean:8:8: error(lean.unknownIdentifier): Unknown identifier `proof`

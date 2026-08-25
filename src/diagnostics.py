@@ -1,4 +1,4 @@
-"""Compact and classify Lean compiler feedback for the repair loop."""
+"""压缩并分类证明修复循环中的 Lean 编译反馈。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 
-ERROR_RE = re.compile(r"^(?P<location>[^\r\n]+:\d+:\d+): error: (?P<message>.*)$")
+ERROR_RE = re.compile(r"^(?P<location>[^\r\n]+:\d+:\d+): error(?:\([^)]*\))?: (?P<message>.*)$")
 
 
 def _classify_message(message: str) -> str:
@@ -34,7 +34,7 @@ def normalize_diagnostics(
     max_chars: int = 1200,
     max_errors: int = 6,
 ) -> dict[str, Any]:
-    """Return stable, short feedback suitable for the next model prompt."""
+    """返回适合下一轮模型提示的稳定短反馈。"""
 
     if timed_out or "编译超时" in text:
         return {

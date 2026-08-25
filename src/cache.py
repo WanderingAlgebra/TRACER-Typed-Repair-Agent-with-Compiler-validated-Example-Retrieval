@@ -1,4 +1,4 @@
-"""Persistent exact-request cache backed by SQLite."""
+"""由 SQLite 支持的持久化精确请求缓存。"""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from provider import Generation
 
 
 def canonical_request(problem_id: str, feedback: str, round_no: int) -> str:
-    """Serialize a repair request exactly for deterministic test fixtures."""
+    """精确序列化修复请求，保证测试夹具稳定。"""
     return json.dumps(
         {"problem_id": problem_id, "feedback": feedback, "round": round_no},
         ensure_ascii=False,

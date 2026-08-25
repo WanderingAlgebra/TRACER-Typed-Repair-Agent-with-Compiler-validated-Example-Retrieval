@@ -1,0 +1,5 @@
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\elab_metavariable.lean:4:8: error: don't know how to synthesize placeholder
+context:
+⊢ True
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\elab_metavariable.lean:3:18: error: unsolved goals
+⊢ True

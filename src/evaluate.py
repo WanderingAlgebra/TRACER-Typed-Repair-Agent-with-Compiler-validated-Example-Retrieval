@@ -1,4 +1,4 @@
-"""Run the 18-question A/B/C pilot with a real configured provider."""
+"""使用真实配置的 provider 运行 18 题 A/B/C 试验。"""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def load_benchmarks() -> list[dict]:
 
 
 def write_manual_review(conditions: list[str]) -> None:
-    """Create a review ledger for every frozen task-condition pair."""
+    """为每个冻结题目和条件组合建立复核台账。"""
     REVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
     existing: dict[tuple[str, str], dict[str, str]] = {}
     if REVIEW_PATH.exists():

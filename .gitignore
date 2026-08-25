@@ -1,7 +1,5 @@
 .lake/
 __pycache__/
-results/day1_runs.jsonl
-results/day2_runs.jsonl
 results/real_pilot_runs.jsonl
 results/agent_runs.jsonl
 results/requests.sqlite3

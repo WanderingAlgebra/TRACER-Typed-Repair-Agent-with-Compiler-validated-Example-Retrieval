@@ -1,0 +1,2 @@
+C:\Users\王润祺\Documents\Codex\2026-08-23\yue\work\LeanProofRepairAgent\gallery_sources\std\elab_instance.lean:5:2: error: type class instance expected
+  α

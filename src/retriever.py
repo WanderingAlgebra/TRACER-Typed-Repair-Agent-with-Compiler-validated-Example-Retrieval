@@ -1,4 +1,4 @@
-"""Small local example retriever for condition C."""
+"""为条件 C 提供本地示例检索。"""
 
 from __future__ import annotations
 
