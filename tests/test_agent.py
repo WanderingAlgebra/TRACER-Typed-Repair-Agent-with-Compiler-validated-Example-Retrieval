@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -11,6 +12,9 @@ from agent import prompt_for, solve_problem
 from cache import RequestCache
 from compiler import compile_candidate
 from provider import Generation, MockProvider
+
+
+LEAN_TIMEOUT = float(os.environ.get("TRACER_TEST_LEAN_TIMEOUT", "60"))
 
 
 class SequenceProvider:
@@ -53,13 +57,13 @@ class AgentEndToEndTest(unittest.TestCase):
                 "A",
                 MockProvider("by\n  intro h\n  exact And.intro h.right h.left"),
                 1,
-                20,
+                LEAN_TIMEOUT,
                 ROOT / "examples",
                 base / "cache.sqlite3",
                 base / "solutions",
                 base / "runs.jsonl",
             )
-            self.assertTrue(result["compile_ok"])
+            self.assertTrue(result["compile_ok"], result)
             self.assertEqual(original, self.source_path.read_text(encoding="utf-8"))
             saved = list((base / "solutions" / "A").glob("*.lean"))
             self.assertEqual(len(saved), 1)
@@ -74,7 +78,7 @@ class AgentEndToEndTest(unittest.TestCase):
                 "B",
                 MockProvider("by exact rfl"),
                 2,
-                20,
+                LEAN_TIMEOUT,
                 ROOT / "examples",
                 base / "cache.sqlite3",
                 base / "solutions",
@@ -93,7 +97,7 @@ class AgentEndToEndTest(unittest.TestCase):
                 condition="A",
                 provider=provider,
                 max_rounds=1,
-                timeout=20,
+                timeout=LEAN_TIMEOUT,
                 examples_dir=ROOT / "examples",
                 cache_path=base / "cache.sqlite3",
                 output_dir=base / "solutions",
@@ -114,13 +118,13 @@ class AgentEndToEndTest(unittest.TestCase):
                 "B",
                 provider,
                 3,
-                20,
+                LEAN_TIMEOUT,
                 ROOT / "examples",
                 base / "cache.sqlite3",
                 base / "solutions",
                 base / "runs.jsonl",
             )
-            self.assertTrue(result["compile_ok"])
+            self.assertTrue(result["compile_ok"], result)
             self.assertEqual(result["round"], 2)
             rows = [json.loads(line) for line in (base / "runs.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(len(rows), 2)
@@ -136,7 +140,7 @@ class AgentEndToEndTest(unittest.TestCase):
                 "A",
                 BrokenProvider(),
                 1,
-                20,
+                LEAN_TIMEOUT,
                 ROOT / "examples",
                 base / "cache.sqlite3",
                 base / "solutions",
@@ -157,13 +161,13 @@ class AgentEndToEndTest(unittest.TestCase):
                 "A",
                 MockProvider("by\n  intro hp\n  exact hp"),
                 1,
-                20,
+                LEAN_TIMEOUT,
                 ROOT / "examples",
                 base / "cache.sqlite3",
                 base / "solutions",
                 base / "runs.jsonl",
             )
-            self.assertTrue(result["compile_ok"])
+            self.assertTrue(result["compile_ok"], result)
 
 
 class CacheTest(unittest.TestCase):

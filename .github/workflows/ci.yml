@@ -7,6 +7,9 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    env:
+      # GitHub 的全新 runner 比本机慢，端到端编译使用独立的测试预算。
+      TRACER_TEST_LEAN_TIMEOUT: "120"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,7 +27,7 @@ jobs:
       - name: Build Lean project
         run: lake build
       - name: Run tests
-        run: python -m unittest discover -s tests -v
+        run: python scripts/run_ci_tests.py
       - name: Audit public capsules
         run: python -m leancapsule audit capsules
       - name: Prepare Mathlib dependency project
