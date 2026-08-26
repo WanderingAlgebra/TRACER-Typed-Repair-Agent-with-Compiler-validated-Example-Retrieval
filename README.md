@@ -1,6 +1,6 @@
 # TRACER / LeanCapsule
 
-TRACER 是一个由 Lean 编译器验证的证明修复与失败工件工具。LeanCapsule 是其中面向社区复现的核心协议：它把 Lean 文件、工具链、项目配置和规范化诊断打包成可回放的 capsule。
+TRACER 是一个由 Lean 编译器验证的证明修复与失败工件工具。LeanCapsule 是其中面向社区复现的核心协议：它把 Lean 文件、工具链、项目配置和规范化诊断打包成可回放的 capsule。本项目的结果将会展示在[这里](https://sjtu-ai4math.github.io/summer-school/2026/)。
 
 仓库同时保留两条互补路径：
 
