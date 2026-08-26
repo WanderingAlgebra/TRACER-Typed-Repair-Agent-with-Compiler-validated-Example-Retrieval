@@ -45,6 +45,26 @@ class ProviderTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "跨来源"):
             handler.redirect_request(request, None, 302, "Found", {}, "https://collector.example/steal")
 
+    def test_transient_network_error_is_retried(self):
+        provider = OpenAICompatibleProvider("https://example.test", "secret", "demo", 0.0, 800)
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"by rfl"}}]}'
+
+        opener = MagicMock()
+        opener.open.side_effect = [urllib.error.URLError("temporary"), Response()]
+        with patch("urllib.request.build_opener", return_value=opener):
+            result = provider.generate("demo prompt")
+        self.assertEqual(result.candidate, "by rfl")
+        self.assertEqual(opener.open.call_count, 2)
+
     def test_provider_metadata_separates_model_configuration(self):
         left = OpenAICompatibleProvider("https://example.test", "secret", "model-a", 0.0, 800)
         right = OpenAICompatibleProvider("https://example.test", "secret", "model-b", 0.0, 800)

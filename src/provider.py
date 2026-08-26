@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -137,15 +138,21 @@ class OpenAICompatibleProvider(Provider):
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
             method="POST",
         )
-        try:
-            opener = urllib.request.build_opener(SameOriginRedirectHandler())
-            with opener.open(request, timeout=90) as response:
-                body = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            response_body = exc.read().decode("utf-8", errors="replace").strip()
-            detail = response_body[:2000] if response_body else str(exc.reason)
-            detail = detail.replace(self.api_key, "[已隐藏的 API 密钥]")
-            raise RuntimeError(f"HTTP {exc.code} from provider: {detail}") from exc
+        opener = urllib.request.build_opener(SameOriginRedirectHandler())
+        for attempt in range(3):
+            try:
+                with opener.open(request, timeout=90) as response:
+                    body = json.loads(response.read().decode("utf-8"))
+                break
+            except urllib.error.HTTPError as exc:
+                response_body = exc.read().decode("utf-8", errors="replace").strip()
+                detail = response_body[:2000] if response_body else str(exc.reason)
+                detail = detail.replace(self.api_key, "[已隐藏的 API 密钥]")
+                raise RuntimeError(f"HTTP {exc.code} from provider: {detail}") from exc
+            except (urllib.error.URLError, TimeoutError):
+                if attempt == 2:
+                    raise
+                time.sleep(0.5 * (attempt + 1))
         return parse_generation(json.dumps(body, ensure_ascii=False), self.name)
 
     def metadata(self) -> dict[str, object]:
