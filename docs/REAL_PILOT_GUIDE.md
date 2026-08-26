@@ -23,7 +23,7 @@ lake build
 $env:LEAN_PROOF_API_URL = "https://api.deepseek.com/chat/completions"
 $env:LEAN_PROOF_MODEL = "deepseek-v4-pro"
 $env:LEAN_PROOF_TEMPERATURE = "0"
-$env:LEAN_PROOF_MAX_TOKENS = "2000"
+$env:LEAN_PROOF_MAX_TOKENS = "8000"
 ```
 
 不要把密钥写入 README、脚本、Git 历史或 JSONL。单次正式运行推荐使用 `--api-key-prompt`，这样无需把密钥放进 PowerShell 命令历史：
@@ -55,13 +55,15 @@ python src/evaluate.py `
   --api-url "https://api.deepseek.com/chat/completions" `
   --model "deepseek-v4-pro" `
   --temperature 0 `
-  --max-tokens 2000 `
+  --max-tokens 8000 `
   --api-key-prompt `
   --conditions A,B,C `
   --max-rounds 3 `
   --timeout 60 `
   --fresh
 ```
+
+带较长推理过程的模型建议至少使用 `8000`。如果日志中 `completion_tokens` 多次达到上限且候选为空，应提高上限并用 `--fresh` 重跑整批。
 
 运行过程结束后应看到一个新的 `experiment_id`。如果出现 `provider_error`、大量 `task_error` 或中途断网，不要把这批结果当作正式实验；修复配置后重新使用 `--fresh` 完整运行。
 

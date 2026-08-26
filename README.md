@@ -96,7 +96,7 @@ python src/agent.py solve `
   --api-url "https://api.deepseek.com/chat/completions" `
   --model "deepseek-v4-pro" `
   --temperature 0 `
-  --max-tokens 2000 `
+  --max-tokens 8000 `
   --api-key-prompt `
   --max-rounds 3
 ```
