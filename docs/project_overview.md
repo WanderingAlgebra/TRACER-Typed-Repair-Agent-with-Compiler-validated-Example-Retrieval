@@ -5,9 +5,9 @@ TRACER（Typed Repair Agent with Compiler-validated Example Retrieval）是面�
 ## 核心组件
 
 1. `src/agent.py`：实现 provider 驱动的求解 CLI 和有限轮反馈循环。
-2. `src/compiler.py`：隔离源文件补丁，并选择目标文件所属的 Lean/Lake 环境。
-3. `src/provider.py`：支持 OpenAI 兼容接口、命令行 provider 和测试专用 mock；统一清洗模型代码围栏。
-4. `src/retriever.py`：为条件 C 提供本地示例上下文。
+2. `src/compiler.py`：隔离源文件补丁，阻断候选元编程入口，以最小子进程环境选择目标文件所属的 Lean/Lake 环境。
+3. `src/provider.py`：支持 OpenAI 兼容接口、命令行 provider 和测试专用 mock；实施 HTTPS、同源重定向、有界响应和凭据脱敏。
+4. `src/retriever.py`：为条件 C 提供本地示例上下文，并检查示例声明与冻结题目的重合。
 5. `src/cache.py`：使用 SQLite 持久保存精确请求与候选结果。
 6. `src/evaluate.py`：运行冻结的 18 题三条件 pilot。
 7. `src/report.py`：计算通过率、Wilson 区间、token/成本汇总和题型分析。
@@ -25,10 +25,11 @@ TRACER（Typed Repair Agent with Compiler-validated Example Retrieval）是面�
 ## 可复现实验
 
 ```powershell
-python -m unittest discover -s tests -v
 lake build
-python src/evaluate.py --provider openai_compatible --conditions A,B,C --fresh
-python src/report.py
+python -m unittest discover -s tests -v
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run_all.ps1 `
+  -ApiUrl $env:LEAN_PROOF_API_URL `
+  -Model $env:LEAN_PROOF_MODEL
 ```
 
-最后两条命令需要真实 provider。发布实验结论时，必须同时提供生成的 JSONL 轨迹、汇总结果和填写完成的 `results/manual_review.csv`。
+实验入口需要 `LEAN_PROOF_API_KEY`，并通过参数或 `LEAN_PROOF_API_URL`、`LEAN_PROOF_MODEL`、`LEAN_PROOF_TEMPERATURE`、`LEAN_PROOF_MAX_TOKENS` 固定非敏感配置。完整示例见 `README.md`。发布实验结论前必须通过 `python scripts/validate_pilot.py --require-manual-review`，再使用 `scripts/export_pilot.py` 生成脱敏 JSONL、汇总结果和复核台账；SQLite 请求缓存不得进入交接工件。

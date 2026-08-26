@@ -1,31 +1,240 @@
-# TRACER 验收状态
+# TRACER Pilot Report (DRAFT)
 
-当前版本已经移除离线答案表驱动的 A/B/C 评测路径。正式 pilot 必须通过 `command` 或 `openai_compatible` provider 运行；没有 provider 时不会生成指标。
+- Experiment ID: `pilot-20260826T011418Z-06ffd827`
+- Status: **DRAFT**
+- Cache hits: `0`
+- Provider configuration: `{"input_price_per_1k": 0.0, "max_response_bytes": 4194304, "max_tokens": 800, "model": "gpt-5.5", "output_price_per_1k": 0.0, "provider": "openai_compatible", "redirect_policy": "same_origin_only", "temperature": 0.0, "url": "https://yxai.chat/v1/chat/completions"}`
+- Candidate policy: `{"environment": "minimal", "meta_execution": "blocked", "version": "tracer-candidate-v1"}`
 
-## 当前可验收项
+## Validation Warnings
 
-- 任意 Lean 文件、定理名和证明区域可以通过 `src/agent.py solve` 输入。
-- A/B/C 只改变 prompt 上下文：题目、题目加诊断、题目加诊断和本地示例。
-- 每轮最多三次，Lean 编译结果作为 verifier。
-- 请求使用 SQLite 精确文本唯一键缓存，成功证明保存到 `results/solutions/`。
-- 失败候选、结构化诊断、provider 配置、usage、缓存命中、编译命令和编译耗时保存到 JSONL。
-- 模型返回的 Markdown 代码围栏会在解析和编译边界清洗；旧缓存候选同样适用。
-- CLI 失败输出会区分 provider 调用错误与 Lean 语法、类型或目标错误，不能仅凭 `compile_ok` 判断 API 状态。
-- 报告同时生成平均 token、可选的估算 API 成本和按题型汇总；人工复核台账使用同一 benchmark ID。
+- ('A', 'and_assoc_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'and_assoc_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'and_assoc_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'and_assoc_eval') 缺少 reviewer_note
+- ('A', 'and_swap_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'and_swap_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'and_swap_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'and_swap_eval') 缺少 reviewer_note
+- ('A', 'bool_cases_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'bool_cases_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'bool_cases_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'bool_cases_eval') 缺少 reviewer_note
+- ('A', 'eq_transitive_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'eq_transitive_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'eq_transitive_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'eq_transitive_eval') 缺少 reviewer_note
+- ('A', 'function_congruent_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'function_congruent_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'function_congruent_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'function_congruent_eval') 缺少 reviewer_note
+- ('A', 'identity_application_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'identity_application_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'identity_application_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'identity_application_eval') 缺少 reviewer_note
+- ('A', 'implies_self_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'implies_self_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'implies_self_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'implies_self_eval') 缺少 reviewer_note
+- ('A', 'nat_add_comm_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_add_comm_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_add_comm_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_add_comm_eval') 缺少 reviewer_note
+- ('A', 'nat_add_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_add_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_add_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_add_zero_eval') 缺少 reviewer_note
+- ('A', 'nat_le_transitive_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_le_transitive_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_le_transitive_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_le_transitive_eval') 缺少 reviewer_note
+- ('A', 'nat_lt_succ_self_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_lt_succ_self_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_lt_succ_self_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_lt_succ_self_eval') 缺少 reviewer_note
+- ('A', 'nat_mul_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_mul_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_mul_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_mul_zero_eval') 缺少 reviewer_note
+- ('A', 'nat_succ_add_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_succ_add_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_succ_add_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_succ_add_eval') 缺少 reviewer_note
+- ('A', 'nat_succ_ne_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_succ_ne_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_succ_ne_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_succ_ne_zero_eval') 缺少 reviewer_note
+- ('A', 'nat_zero_add_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'nat_zero_add_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'nat_zero_add_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'nat_zero_add_eval') 缺少 reviewer_note
+- ('A', 'not_not_intro_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'not_not_intro_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'not_not_intro_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'not_not_intro_eval') 缺少 reviewer_note
+- ('A', 'or_assoc_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'or_assoc_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'or_assoc_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'or_assoc_eval') 缺少 reviewer_note
+- ('A', 'or_swap_eval') 的 kernel_pass 必须为 yes/no
+- ('A', 'or_swap_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('A', 'or_swap_eval') 的 leakage_risk 必须为 yes/no
+- ('A', 'or_swap_eval') 缺少 reviewer_note
+- ('B', 'and_assoc_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'and_assoc_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'and_assoc_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'and_assoc_eval') 缺少 reviewer_note
+- ('B', 'and_swap_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'and_swap_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'and_swap_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'and_swap_eval') 缺少 reviewer_note
+- ('B', 'bool_cases_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'bool_cases_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'bool_cases_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'bool_cases_eval') 缺少 reviewer_note
+- ('B', 'eq_transitive_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'eq_transitive_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'eq_transitive_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'eq_transitive_eval') 缺少 reviewer_note
+- ('B', 'function_congruent_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'function_congruent_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'function_congruent_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'function_congruent_eval') 缺少 reviewer_note
+- ('B', 'identity_application_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'identity_application_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'identity_application_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'identity_application_eval') 缺少 reviewer_note
+- ('B', 'implies_self_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'implies_self_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'implies_self_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'implies_self_eval') 缺少 reviewer_note
+- ('B', 'nat_add_comm_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_add_comm_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_add_comm_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_add_comm_eval') 缺少 reviewer_note
+- ('B', 'nat_add_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_add_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_add_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_add_zero_eval') 缺少 reviewer_note
+- ('B', 'nat_le_transitive_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_le_transitive_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_le_transitive_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_le_transitive_eval') 缺少 reviewer_note
+- ('B', 'nat_lt_succ_self_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_lt_succ_self_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_lt_succ_self_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_lt_succ_self_eval') 缺少 reviewer_note
+- ('B', 'nat_mul_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_mul_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_mul_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_mul_zero_eval') 缺少 reviewer_note
+- ('B', 'nat_succ_add_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_succ_add_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_succ_add_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_succ_add_eval') 缺少 reviewer_note
+- ('B', 'nat_succ_ne_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_succ_ne_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_succ_ne_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_succ_ne_zero_eval') 缺少 reviewer_note
+- ('B', 'nat_zero_add_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'nat_zero_add_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'nat_zero_add_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'nat_zero_add_eval') 缺少 reviewer_note
+- ('B', 'not_not_intro_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'not_not_intro_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'not_not_intro_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'not_not_intro_eval') 缺少 reviewer_note
+- ('B', 'or_assoc_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'or_assoc_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'or_assoc_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'or_assoc_eval') 缺少 reviewer_note
+- ('B', 'or_swap_eval') 的 kernel_pass 必须为 yes/no
+- ('B', 'or_swap_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('B', 'or_swap_eval') 的 leakage_risk 必须为 yes/no
+- ('B', 'or_swap_eval') 缺少 reviewer_note
+- ('C', 'and_assoc_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'and_assoc_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'and_assoc_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'and_assoc_eval') 缺少 reviewer_note
+- ('C', 'and_swap_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'and_swap_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'and_swap_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'and_swap_eval') 缺少 reviewer_note
+- ('C', 'bool_cases_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'bool_cases_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'bool_cases_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'bool_cases_eval') 缺少 reviewer_note
+- ('C', 'eq_transitive_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'eq_transitive_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'eq_transitive_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'eq_transitive_eval') 缺少 reviewer_note
+- ('C', 'function_congruent_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'function_congruent_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'function_congruent_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'function_congruent_eval') 缺少 reviewer_note
+- ('C', 'identity_application_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'identity_application_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'identity_application_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'identity_application_eval') 缺少 reviewer_note
+- ('C', 'implies_self_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'implies_self_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'implies_self_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'implies_self_eval') 缺少 reviewer_note
+- ('C', 'nat_add_comm_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_add_comm_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_add_comm_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_add_comm_eval') 缺少 reviewer_note
+- ('C', 'nat_add_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_add_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_add_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_add_zero_eval') 缺少 reviewer_note
+- ('C', 'nat_le_transitive_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_le_transitive_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_le_transitive_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_le_transitive_eval') 缺少 reviewer_note
+- ('C', 'nat_lt_succ_self_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_lt_succ_self_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_lt_succ_self_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_lt_succ_self_eval') 缺少 reviewer_note
+- ('C', 'nat_mul_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_mul_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_mul_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_mul_zero_eval') 缺少 reviewer_note
+- ('C', 'nat_succ_add_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_succ_add_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_succ_add_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_succ_add_eval') 缺少 reviewer_note
+- ('C', 'nat_succ_ne_zero_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_succ_ne_zero_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_succ_ne_zero_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_succ_ne_zero_eval') 缺少 reviewer_note
+- ('C', 'nat_zero_add_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'nat_zero_add_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'nat_zero_add_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'nat_zero_add_eval') 缺少 reviewer_note
+- ('C', 'not_not_intro_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'not_not_intro_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'not_not_intro_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'not_not_intro_eval') 缺少 reviewer_note
+- ('C', 'or_assoc_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'or_assoc_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'or_assoc_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'or_assoc_eval') 缺少 reviewer_note
+- ('C', 'or_swap_eval') 的 kernel_pass 必须为 yes/no
+- ('C', 'or_swap_eval') 的 inappropriate_assumption 必须为 yes/no
+- ('C', 'or_swap_eval') 的 leakage_risk 必须为 yes/no
+- ('C', 'or_swap_eval') 缺少 reviewer_note
 
-## 正式 pilot 命令
+## 汇总
 
-```powershell
-python src/evaluate.py --provider openai_compatible --conditions A,B,C --fresh
-python src/report.py
-```
-
-或者：
-
-```powershell
-python src/evaluate.py --provider command --provider-command 'python my_provider.py' --conditions A,B,C --fresh
-```
+| 条件 | 题数 | pass@1 | Wilson 95% CI | pass@3 | Wilson 95% CI | 平均轮次 | 平均编译毫秒 | 平均总 token | 估算成本 |
+|---|---:|---:|---|---:|---|---:|---:|---:|---:|
+| A | 18 | 17/18 (94.4%) | [74.2%, 99.0%] | 18/18 (100.0%) | [82.4%, 100.0%] | 1.06 | 2724.7 | 382.1 | unknown |
+| B | 18 | 17/18 (94.4%) | [74.2%, 99.0%] | 18/18 (100.0%) | [82.4%, 100.0%] | 1.06 | 2375.5 | 321.8 | unknown |
+| C | 18 | 18/18 (100.0%) | [82.4%, 100.0%] | 18/18 (100.0%) | [82.4%, 100.0%] | 1.00 | 2350.7 | 336.6 | unknown |
 
 ## 解释边界
 
-正式结果必须使用同一个 provider、模型、温度、最大输出长度和固定题集。报告会记录真实 usage 与按题型结果；题目与本地示例的相似性仍需人工标注，Wilson 区间只作为小样本 pilot evidence。没有真实 provider 的旧离线结果不具有实验解释力。
+- 18 道题是工作流 pilot，不构成通用自动定理证明能力或 SOTA 证据。
+- C 条件的本地示例与部分评测题高度相似，泄漏风险必须逐题人工复核。
+- 只有状态为 FORMAL、完整保留对应 JSONL 与 proof artifacts 的报告才能用于正式结论。

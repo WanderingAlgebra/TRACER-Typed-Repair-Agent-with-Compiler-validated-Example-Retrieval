@@ -1,6 +1,6 @@
 # 当前工作进度
 
-更新时间：2026-08-25
+更新时间：2026-08-26
 
 ## 已完成
 
@@ -11,7 +11,7 @@
 - 保存 `capsule.json`、工具链与 Lake 配置、原始诊断、README、PowerShell/Unix 回放脚本。
 - 增加 Std、Mathlib、project-local 三类来源的公开失败 gallery，共 24 个 capsule。
 - 增加单次 Agent 的 API 配置参数和本地 HTTP `/solve` 接口；密钥只在内存中使用。
-- CLI 会安全确认密钥长度和末四位，区分 provider 错误与 Lean 编译错误，并清洗模型及历史缓存中的 Markdown 代码围栏。
+- CLI 只确认密钥已读取，不显示长度、末四位或字符信息；provider 错误与 Lean 编译错误分开记录，敏感内容会在日志、元数据和异常中脱敏。
 - README、Progress、核心新增代码注释统一使用中文。
 - 新增 theorem standalone 抽取：保留 imports、namespace 和目标定理，并在编译不一致时自动 fallback。
 - 新增有界贪心 import 删除；每次删除都重新编译并比较诊断键。
@@ -25,16 +25,29 @@
 - 将 Mathlib 冷启动回放预算调整为 180 秒，并避免环境脚本重复获取已存在的预编译缓存。
 - 修正 GitHub Actions 顺序：端到端测试依赖真实 Lean 编译器，现已在运行测试前安装 Lean，并增加顺序回归测试。
 - GitHub runner 的端到端 Lean 编译采用独立 120 秒预算；测试失败详情会直接写入 Actions Summary。
+- 正式 `run_all.ps1` 固定实验参数并请求严格 fresh 运行；旧状态由评测入口归档，复用缓存必须显式选择。
+- PowerShell 入口保持 ASCII，检查每个原生命令退出码；Mathlib 脚本在 Windows 和 Unix 上设置稳定缓存目录。
+- 新增 54 任务完整性、人工复核门禁与脱敏交接工具；原始路径、请求缓存和未复核草稿不会自动进入 Git。
+- 正式报告按单一 `experiment_id`/题目 `run_id` 校验，要求 A/B/C 全覆盖、单一非空 provider 配置、连续轮次和严格 fresh；未知价格保持 `unknown`，不再显示为零成本。
+- 同一次求解不会把失败候选从缓存中重复用于后续轮次；候选及成功工件同时拒绝 `sorry`、`sorryAx` 和 `admit`。
+- 定理定位拒绝不带命名空间的重名目标，限定名不再回退到同名定理；隔离编译保留有效本地 helper，并识别 `lakefile.lean` 项目。
+- 交接导出要求匹配当前实验的正式报告和每个成功证明工件，使用临时目录原子生成，并扫描常见认证 token。
+- CI 增加 Windows PowerShell 5.1 语法检查和脚本/文档静态回归。
+- 远程 provider 强制 HTTPS，只允许同源认证重定向，并限制成功响应和错误正文大小；非 JSON 错误正文不会写入日志。
+- 模型候选使用最小化子进程环境，阻止 `run_tac`、`run_term_elab`、`#eval` 等编译期执行入口，并把候选策略写入实验记录与正式报告。
+- 条件 C 在调用 provider 前检查检索语料与目标声明重合；示例库中的 8 项直接答案重合已替换为相关但不同的证明示例。
 
 ## 当前验证状态
 
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试 39/39：包含文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、Lean Action 仅安装模式、gallery、manifest、索引输出、路径清理和复核账本检查；`lake build` 通过。
+- 完整 Python 测试 91/91 通过，包含文档一致性、Windows 脚本语法、模型 Markdown 围栏清洗、缓存轮次隔离、`sorryAx` 拦截、候选元编程阻断、最小化环境、provider 传输与错误脱敏、检索泄漏检查、限定定理定位、外部文件显式工具链、CI 安装/构建/测试顺序、gallery、manifest、索引输出、路径清理、正式报告和复核账本检查；`lake build` 通过。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 
 ## 明确边界
 
 - capsule gallery 验收的是失败复现协议，不等同于真实模型 A/B/C 实验；模型实验需另行配置 provider、冻结模型参数并记录 token、延迟和编译次数。
 - 多文件依赖目前采用完整文件 fallback 与显式本地文件清单，不承诺任意项目的程序切片。
+- 当前已覆盖 provider 的协议、重定向、响应边界和日志脱敏，也为候选编译提供静态元编程阻断与最小化环境；这仍不是通用操作系统级沙箱。项目源码、imports、依赖及自定义 tactic 必须被视为可信输入，不应在本机运行任意不受信任 Lean 项目。
+- 正式模型 A/B/C 运行及人工 `yes/no` 复核尚未执行：需要有效 provider 配置和真实人工判断，不能用自动测试结果代替或伪造。

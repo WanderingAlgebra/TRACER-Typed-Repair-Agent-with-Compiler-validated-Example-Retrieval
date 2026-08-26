@@ -13,6 +13,43 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+DECLARATION_RE = re.compile(
+    r"(?m)^(?P<indent>[ \t]*)(?P<kind>theorem|lemma)[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_']*)\b"
+)
+COMMAND_RE = re.compile(
+    r"(?m)^(?P<indent>[ \t]*)(?:theorem|lemma|def|abbrev|instance|structure|class|inductive|"
+    r"coinductive|axiom|opaque|example|namespace|section|end|variable|include|omit|open|attribute|"
+    r"set_option)\b"
+)
+SCOPE_RE = re.compile(
+    r"(?m)^[ \t]*(?P<kind>namespace|section|end)(?:[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_'.]*))?"
+    r"[ \t]*(?:--.*)?$"
+)
+PLACEHOLDER_RE = re.compile(r"\b(?:sorryAx|sorry|admit)\b")
+SORRY_WARNING_RE = re.compile(r"declaration uses[^\r\n]*\bsorry\b", re.IGNORECASE)
+UNSAFE_ELABORATION_RE = re.compile(
+    r"(?<![A-Za-z0-9_'])(?:run_tac|run_term_elab|eval_tac|elab_rules|macro_rules)(?![A-Za-z0-9_'])"
+    r"|#[A-Za-z_][A-Za-z0-9_']*",
+    re.IGNORECASE,
+)
+UNSAFE_DECLARATION_RE = re.compile(
+    r"(?m)^[ \t]*unsafe[ \t]+(?:def|abbrev|instance|opaque)\b", re.IGNORECASE
+)
+INJECTED_COMMAND_RE = re.compile(
+    r"(?m)^[ \t]*(?:import|namespace|section|end|open|attribute|set_option|theorem|lemma|def|abbrev|"
+    r"instance|structure|class|inductive|coinductive|axiom|opaque|example|elab|macro|syntax)\b"
+)
+LEAN_ENV_PASSTHROUGH = {
+    "PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC",
+    "ELAN_HOME", "LEAN_PATH", "LEAN_SYSROOT", "LAKE_HOME",
+    "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH",
+    "LANG", "LC_ALL", "LC_CTYPE", "TERM", "NO_COLOR",
+}
+CANDIDATE_POLICY = {
+    "version": "tracer-candidate-v1",
+    "meta_execution": "blocked",
+    "environment": "minimal",
+}
 
 
 @dataclass
@@ -36,6 +73,78 @@ class FileCompileResult:
     timed_out: bool = False
     returncode: int | None = None
     compiler_command: list[str] | None = None
+
+
+def candidate_safety_violation(candidate: str) -> str | None:
+    """拒绝模型候选中的元编程执行入口和额外顶层命令。"""
+
+    if source_meta_execution_violation(candidate):
+        return "候选包含不允许的 Lean 元编程或命令执行入口"
+    lines = candidate.splitlines()
+    if any(INJECTED_COMMAND_RE.match(line) for line in lines):
+        return "候选试图在局部证明后注入额外 Lean 命令"
+    return None
+
+
+def source_meta_execution_violation(source: str) -> bool:
+    """识别公开回放工件中不允许的编译期执行入口。"""
+
+    return bool(UNSAFE_ELABORATION_RE.search(source) or UNSAFE_DECLARATION_RE.search(source))
+
+
+def lean_subprocess_environment(scratch_home: Path, project_root: Path | None = None) -> dict[str, str]:
+    """构造最小 Lean 环境，不把 API key、token 或其他父进程变量交给候选。"""
+
+    source = os.environ
+    environment = {
+        name: source[name]
+        for name in LEAN_ENV_PASSTHROUGH
+        if source.get(name)
+    }
+    try:
+        git_config_count = int(source.get("GIT_CONFIG_COUNT", "0"))
+    except ValueError:
+        git_config_count = 0
+    safe_git_entries: list[tuple[str, str]] = []
+    for index in range(max(0, git_config_count)):
+        key = source.get(f"GIT_CONFIG_KEY_{index}", "")
+        value = source.get(f"GIT_CONFIG_VALUE_{index}", "")
+        if key.casefold() == "safe.directory" and value:
+            safe_git_entries.append((key, value))
+    if safe_git_entries:
+        environment["GIT_CONFIG_COUNT"] = str(len(safe_git_entries))
+        for index, (key, value) in enumerate(safe_git_entries):
+            environment[f"GIT_CONFIG_KEY_{index}"] = key
+            environment[f"GIT_CONFIG_VALUE_{index}"] = value
+    if not environment.get("ELAN_HOME"):
+        profile = source.get("USERPROFILE") or source.get("HOME")
+        if profile and (Path(profile) / ".elan").exists():
+            environment["ELAN_HOME"] = str(Path(profile) / ".elan")
+
+    scratch_home.mkdir(parents=True, exist_ok=True)
+    temp_dir = scratch_home / "tmp"
+    app_data = scratch_home / "appdata"
+    local_app_data = scratch_home / "localappdata"
+    for path in (temp_dir, app_data, local_app_data):
+        path.mkdir(parents=True, exist_ok=True)
+    environment.update(
+        {
+            "HOME": str(scratch_home),
+            "USERPROFILE": str(scratch_home),
+            "TMP": str(temp_dir),
+            "TEMP": str(temp_dir),
+            "TMPDIR": str(temp_dir),
+            "APPDATA": str(app_data),
+            "LOCALAPPDATA": str(local_app_data),
+            "TRACER_CANDIDATE_ENV": "isolated",
+        }
+    )
+    if project_root:
+        existing_lean_path = environment.get("LEAN_PATH", "")
+        environment["LEAN_PATH"] = os.pathsep.join(
+            part for part in (str(project_root), existing_lean_path) if part
+        )
+    return environment
 
 
 def find_project_root(path: Path) -> Path | None:
@@ -80,25 +189,19 @@ def run_lean_file(path: Path, timeout: float = 20.0, project_root: Path | None =
     command = lean_command(path, root)
     started = time.perf_counter()
     try:
-        environment = os.environ.copy()
-        if not environment.get("ELAN_HOME"):
-            user_profile = environment.get("USERPROFILE")
-            if user_profile and (Path(user_profile) / ".elan").exists():
-                environment["ELAN_HOME"] = str(Path(user_profile) / ".elan")
-        if root:
-            existing_lean_path = environment.get("LEAN_PATH", "")
-            environment["LEAN_PATH"] = os.pathsep.join(part for part in (str(root), existing_lean_path) if part)
-        process = subprocess.run(
-            command,
-            cwd=root or path.parent,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            capture_output=True,
-            timeout=timeout,
-            check=False,
-            env=environment,
-        )
+        with tempfile.TemporaryDirectory(prefix="tracer-lean-env-") as scratch:
+            environment = lean_subprocess_environment(Path(scratch), root)
+            process = subprocess.run(
+                command,
+                cwd=root or path.parent,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                capture_output=True,
+                timeout=timeout,
+                check=False,
+                env=environment,
+            )
     except subprocess.TimeoutExpired as exc:
         elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
         stdout = exc.stdout or ""
@@ -112,34 +215,63 @@ def run_lean_file(path: Path, timeout: float = 20.0, project_root: Path | None =
     return FileCompileResult(process.returncode == 0, elapsed_ms, diagnostics, False, process.returncode, command)
 
 
+def _active_scopes(source: str, position: int) -> list[tuple[str, str | None]]:
+    """Track the namespace/section stack up to a source position."""
+
+    scopes: list[tuple[str, str | None]] = []
+    for match in SCOPE_RE.finditer(source, 0, position):
+        kind = match.group("kind")
+        name = match.group("name")
+        if kind == "end":
+            if scopes:
+                scopes.pop()
+        elif kind == "namespace" and name:
+            scopes.append((kind, name))
+        elif kind == "section":
+            scopes.append((kind, name))
+    return scopes
+
+
 def _namespace_before(source: str, position: int) -> str | None:
-    matches = list(re.finditer(r"(?m)^namespace\s+([A-Za-z_][A-Za-z0-9_.]*)\s*$", source[:position]))
-    return matches[-1].group(1) if matches else None
+    parts: list[str] = []
+    for kind, name in _active_scopes(source, position):
+        if kind != "namespace" or not name:
+            continue
+        if name.startswith("_root_."):
+            parts = name.removeprefix("_root_.").split(".")
+        else:
+            parts.extend(name.split("."))
+    return ".".join(parts) or None
+
+
+def _declaration_end(source: str, match: re.Match[str]) -> int:
+    declaration_indent = len(match.group("indent").expandtabs(4))
+    for command in COMMAND_RE.finditer(source, match.end()):
+        command_indent = len(command.group("indent").expandtabs(4))
+        if command_indent <= declaration_indent:
+            return command.start()
+    return len(source)
 
 
 def declaration_scope(source: str, theorem_name: str) -> tuple[int, int]:
     short_name = theorem_name.rsplit(".", 1)[-1]
-    matches = list(re.finditer(rf"(?m)^\s*(?:theorem|lemma)\s+{re.escape(short_name)}\b", source))
-    match = None
+    matches = [match for match in DECLARATION_RE.finditer(source) if match.group("name") == short_name]
     requested_namespace = theorem_name.rsplit(".", 1)[0] if "." in theorem_name else None
-    for candidate in matches:
-        if requested_namespace is None or _namespace_before(source, candidate.start()) == requested_namespace:
-            match = candidate
-            break
-    if match is None and matches:
-        match = matches[0]
+    if requested_namespace is None:
+        if len(matches) > 1:
+            namespaces = sorted({_namespace_before(source, candidate.start()) or "_root_" for candidate in matches})
+            raise ValueError(f"目标定理名不唯一: {theorem_name}；请使用限定名（候选命名空间: {', '.join(namespaces)}）")
+        match = matches[0] if matches else None
+    else:
+        qualified = [
+            candidate
+            for candidate in matches
+            if _namespace_before(source, candidate.start()) == requested_namespace
+        ]
+        match = qualified[0] if len(qualified) == 1 else None
     if match is None:
         raise ValueError(f"找不到目标定理: {theorem_name}")
-    next_declaration = re.search(r"(?m)^\s*(?:theorem|lemma)\s+", source[match.end():])
-    if next_declaration:
-        return match.start(), match.end() + next_declaration.start()
-    namespace_name = _namespace_before(source, match.start())
-    namespace = re.search(rf"(?m)^namespace\s+{re.escape(namespace_name)}\s*$", source) if namespace_name else None
-    if namespace:
-        namespace_end = source.find(f"\nend {namespace_name}", match.end())
-        if namespace_end >= 0:
-            return match.start(), namespace_end
-    return match.start(), len(source)
+    return match.start(), _declaration_end(source, match)
 
 
 _declaration_scope = declaration_scope
@@ -161,21 +293,46 @@ def patch_proof_region(source: str, candidate: str, theorem_name: str, start: st
         right = scope_start + placeholders[0].end()
     if left > right:
         raise ValueError("证明区域标记顺序错误")
-    return source[:left] + "\n  " + candidate.strip() + "\n  " + source[right:]
+    candidate_block = "\n".join(f"  {line}" for line in candidate.strip().splitlines())
+    return source[:left] + "\n" + candidate_block + "\n  " + source[right:]
+
+
+def _strip_incomplete_declarations(source: str) -> str:
+    """Drop earlier unfinished lemmas while retaining valid local helpers and context."""
+
+    spans: list[tuple[int, int]] = []
+    for match in DECLARATION_RE.finditer(source):
+        end = _declaration_end(source, match)
+        if PLACEHOLDER_RE.search(source[match.start():end]):
+            spans.append((match.start(), end))
+    if not spans:
+        return source
+    parts: list[str] = []
+    cursor = 0
+    for start, end in spans:
+        if start < cursor:
+            continue
+        parts.append(source[cursor:start])
+        cursor = end
+    parts.append(source[cursor:])
+    return "".join(parts)
 
 
 def isolate_target(source: str, patched: str, theorem_name: str) -> str:
     scope_start, scope_end = declaration_scope(patched, theorem_name)
-    namespace_name = _namespace_before(source, scope_start)
-    namespace = re.search(rf"(?m)^namespace\s+{re.escape(namespace_name)}\s*$", source) if namespace_name else None
-    if namespace is None:
-        return source[:scope_start] + patched[scope_start:scope_end] + "\n"
-    return (
-        source[: namespace.end()]
-        + "\n\n"
-        + patched[scope_start:scope_end]
-        + f"\n\nend {namespace_name}\n"
-    )
+    prefix = _strip_incomplete_declarations(source[:scope_start]).rstrip()
+    closers: list[str] = []
+    for kind, name in reversed(_active_scopes(source, scope_start)):
+        if name:
+            closers.append(f"end {name.split('.')[-1]}")
+        else:
+            closers.append("end")
+    parts = [part for part in (prefix, patched[scope_start:scope_end].strip(), "\n".join(closers)) if part]
+    return "\n\n".join(parts) + "\n"
+
+
+def diagnostics_use_sorry(diagnostics: str) -> bool:
+    return bool(SORRY_WARNING_RE.search(diagnostics))
 
 
 def compile_candidate(
@@ -188,6 +345,9 @@ def compile_candidate(
     timeout: float = 20.0,
     placeholder: str = "sorry",
 ) -> CompileResult:
+    violation = candidate_safety_violation(candidate)
+    if violation:
+        raise ValueError(violation)
     patched = patch_proof_region(source, candidate, theorem_name, start_marker, end_marker, placeholder)
     isolated = isolate_target(source, patched, theorem_name)
     with tempfile.TemporaryDirectory(prefix="lean-proof-repair-") as temp_dir:
@@ -195,13 +355,9 @@ def compile_candidate(
         temp_path.write_text(isolated, encoding="utf-8")
         started = time.perf_counter()
         try:
-            environment = os.environ.copy()
-            if not environment.get("ELAN_HOME"):
-                user_profile = environment.get("USERPROFILE")
-                if user_profile and (Path(user_profile) / ".elan").exists():
-                    environment["ELAN_HOME"] = str(Path(user_profile) / ".elan")
-            project_root = next((parent for parent in (source_path.parent, *source_path.parent.parents) if (parent / "lakefile.toml").exists()), None)
+            project_root = find_project_root(source_path)
             command = ["lake", "env", "lean", str(temp_path)] if project_root else _direct_lean_command(temp_path)
+            environment = lean_subprocess_environment(Path(temp_dir) / "home", project_root)
             process = subprocess.run(
                 command,
                 cwd=project_root or source_path.parent,

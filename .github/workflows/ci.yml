@@ -35,3 +35,31 @@ jobs:
         run: bash scripts/setup_mathlib.sh
       - name: Replay public capsules
         run: python -m leancapsule verify capsules
+
+  windows-script-checks:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Parse PowerShell 5.1 entrypoints
+        shell: powershell
+        run: |
+          $failed = $false
+          foreach ($file in @("run_all.ps1", "scripts/setup_mathlib.ps1")) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_ }
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+      - name: Run script and documentation regressions
+        run: python -m unittest tests.test_ci tests.test_docs -v

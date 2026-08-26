@@ -2,11 +2,24 @@
 set -euo pipefail
 
 PROJECT="${1:-$(dirname "$0")/../mathlib_project}"
+if [[ -z "${MATHLIB_CACHE_DIR:-}" ]]; then
+  if [[ -n "${XDG_CACHE_HOME:-}" ]]; then
+    MATHLIB_CACHE_DIR="${XDG_CACHE_HOME}/mathlib"
+  elif [[ -n "${HOME:-}" ]]; then
+    MATHLIB_CACHE_DIR="${HOME}/.cache/mathlib"
+  else
+    echo "HOME or MATHLIB_CACHE_DIR is required" >&2
+    exit 2
+  fi
+  export MATHLIB_CACHE_DIR
+fi
+mkdir -p "$MATHLIB_CACHE_DIR"
+
 cd "$PROJECT"
-echo "正在同步 Mathlib 依赖..."
+echo "Syncing Mathlib dependencies..."
 lake update
-if [ ! -f ".lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean" ]; then
-  echo "正在获取 Mathlib 预编译缓存..."
+if [[ ! -f ".lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean" ]]; then
+  echo "Fetching the Mathlib precompiled cache..."
   lake exe cache get
 fi
-echo "Mathlib 环境准备完成。"
+echo "Mathlib environment is ready."

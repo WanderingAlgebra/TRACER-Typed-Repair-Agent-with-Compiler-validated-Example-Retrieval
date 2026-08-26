@@ -8,12 +8,33 @@ from compiler import declaration_scope
 
 
 IMPORT_RE = re.compile(r"(?m)^\s*import\s+[^\r\n]+$")
-NAMESPACE_RE = re.compile(r"(?m)^namespace\s+([A-Za-z_][A-Za-z0-9_.]*)\s*$")
+BLOCK_RE = re.compile(
+    r"(?m)^\s*(?:(?P<namespace>namespace)\s+(?P<namespace_name>[A-Za-z_][A-Za-z0-9_.]*)"
+    r"|(?P<section>section)(?:\s+(?P<section_name>[A-Za-z_][A-Za-z0-9_]*))?"
+    r"|(?P<end>end)(?:\s+(?P<end_name>[A-Za-z_][A-Za-z0-9_.]*))?)\s*$"
+)
 
 
-def _namespace_for(source: str, position: int) -> str | None:
-    matches = list(NAMESPACE_RE.finditer(source[:position]))
-    return matches[-1].group(1) if matches else None
+def _namespace_stack(source: str, position: int) -> list[str]:
+    """返回 position 处仍打开的 namespace，忽略已经结束的块。"""
+
+    blocks: list[tuple[str, str | None]] = []
+    for match in BLOCK_RE.finditer(source[:position]):
+        if match.group("namespace"):
+            blocks.append(("namespace", match.group("namespace_name")))
+        elif match.group("section"):
+            blocks.append(("section", match.group("section_name")))
+        elif blocks:
+            end_name = match.group("end_name")
+            if end_name is None:
+                blocks.pop()
+                continue
+            matching = next((index for index in range(len(blocks) - 1, -1, -1) if blocks[index][1] == end_name), None)
+            if matching is not None:
+                del blocks[matching:]
+            else:
+                blocks.pop()
+    return [name for kind, name in blocks if kind == "namespace" and name]
 
 
 def extract_theorem(source: str, theorem: str) -> str:
@@ -21,7 +42,9 @@ def extract_theorem(source: str, theorem: str) -> str:
 
     start, end = declaration_scope(source, theorem)
     imports = "\n".join(match.group(0).strip() for match in IMPORT_RE.finditer(source))
-    namespace = _namespace_for(source, start)
+    namespaces = _namespace_stack(source, start)
     body = source[start:end].strip()
-    parts = [part for part in (imports, f"namespace {namespace}" if namespace else "", body, f"end {namespace}" if namespace else "") if part]
+    openings = "\n".join(f"namespace {namespace}" for namespace in namespaces)
+    closings = "\n".join(f"end {namespace}" for namespace in reversed(namespaces))
+    parts = [part for part in (imports, openings, body, closings) if part]
     return "\n\n".join(parts) + "\n"
