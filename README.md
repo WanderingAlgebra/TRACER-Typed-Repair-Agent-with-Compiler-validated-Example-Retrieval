@@ -39,6 +39,8 @@ python -m leancapsule gallery capsules --out capsules/index.json
 
 所有命令都输出机器可读 JSON；`replay`、`verify`、`audit` 和 `gallery` 会用进程退出码表示是否通过。Mathlib 冷启动可能需要较长时间，因此回放默认超时为 180 秒。
 
+当前修订已通过 49 项 Python 自动化测试、`lake build` 和 24 个公开 Capsule 的发布审计。正式 A/B/C 模型实验与 54 条人工复核仍属于发布前工作，不会由仓库中的示例结果代替。
+
 使用 `--theorem` 时，工具会先尝试保留 imports、namespace 和目标定理的 standalone 文件；如果编译结果与原始诊断不一致，就自动退回完整文件。standalone 成功后会在固定编译预算内逐个尝试删除 imports，也可以使用 `--no-minimize-imports` 关闭。
 
 ## 公开失败 gallery
@@ -146,6 +148,7 @@ tests/                  Python 自动化测试
 scripts/                环境准备与复现实用脚本
 docs/                   方法、格式和贡献说明
 PROGRESS.md             唯一的当前工作进度记录
+CHANGELOG.md            面向 GitHub 的补丁与版本变更记录
 ```
 
 ## 设计边界
@@ -156,6 +159,7 @@ PROGRESS.md             唯一的当前工作进度记录
 - API 密钥不进入 JSONL、SQLite、候选文件、manifest 或错误响应。
 - Provider 返回的 Markdown 代码围栏会在解析边界和编译边界各清洗一次，兼容历史缓存。
 - 仓库中的实验结果不能替代正式的模型对比实验；正式实验必须记录模型配置、token、延迟和人工复核。
+- 安全、实验协议和发布审计相关改动记录在 [CHANGELOG.md](CHANGELOG.md)；当前状态和未完成事项记录在 [PROGRESS.md](PROGRESS.md)。
 
 ## 贡献
 
