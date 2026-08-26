@@ -118,7 +118,7 @@ python src/agent.py solve `
 先使用真实 provider 运行完整冻结集。`--fresh` 会把旧日志、证明、复核表和报告移入可恢复的 `results/archive/`；默认同时清空持久缓存。若明确使用 `--reuse-cache`，报告只能作为带警告的草稿。
 
 ```powershell
-python src/evaluate.py --provider openai_compatible --conditions A,B,C --fresh
+python src/evaluate.py --provider openai_compatible --api-url "https://api.example/v1/chat/completions" --model "your-model" --api-key-prompt --conditions A,B,C --fresh
 python scripts/validate_pilot.py --runs results/real_pilot_runs.jsonl --require-manual-review
 python src/report.py
 python scripts/export_pilot.py --out ..\TRACER-pilot-handoff

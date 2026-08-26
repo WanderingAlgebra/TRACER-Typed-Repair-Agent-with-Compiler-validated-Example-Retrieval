@@ -26,7 +26,7 @@ $env:LEAN_PROOF_TEMPERATURE = "0"
 $env:LEAN_PROOF_MAX_TOKENS = "2000"
 ```
 
-不要把密钥写入 README、脚本、Git 历史或 JSONL。推荐只在当前 PowerShell 进程中临时设置：
+不要把密钥写入 README、脚本、Git 历史或 JSONL。单次正式运行推荐使用 `--api-key-prompt`，这样无需把密钥放进 PowerShell 命令历史：
 
 ```powershell
 $secure = Read-Host "API key（输入时不会回显）" -AsSecureString
@@ -52,6 +52,11 @@ $env:LEAN_PROOF_OUTPUT_PRICE_PER_1K = "0"
 ```powershell
 python src/evaluate.py `
   --provider openai_compatible `
+  --api-url "https://api.deepseek.com/chat/completions" `
+  --model "你的实际模型名" `
+  --temperature 0 `
+  --max-tokens 2000 `
+  --api-key-prompt `
   --conditions A,B,C `
   --max-rounds 3 `
   --timeout 60 `
@@ -129,4 +134,3 @@ lake build
 ```
 
 最终交付前确认：`pilot_report.json` 的 `status` 为 `formal`，`cache_hits` 为 `0`，`experiment_id` 全程一致，并且导出包中存在每个成功记录对应的 `.lean` 文件。
-
