@@ -25,8 +25,9 @@ WINDOWS_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/]")
 POSIX_PRIVATE_PATH = re.compile(r"/(?:home|Users|tmp|private|var/tmp)/")
 PLACEHOLDER = re.compile(r"\b(?:sorry|admit)\b", re.IGNORECASE)
 SENSITIVE_VALUE = re.compile(
-    r"(?i)(?:api[_-]?key|authorization)\s*[:=]\s*[\"']?[^\s\"']{12,}|bearer\s+[A-Za-z0-9._-]{12,}"
+    r"(?i)(?:api[_-]?key|authorization|access[_-]?token|secret|password)[\"']?\s*[:=]\s*[\"']?[^\s\"',}]{12,}|bearer\s+[A-Za-z0-9._-]{12,}"
 )
+TEXT_SUFFIXES = {".json", ".jsonl", ".txt", ".md", ".lean", ".ps1", ".sh", ".toml", ".csv", ".yaml", ".yml"}
 
 
 def _audit_text(path: Path, text: str) -> list[str]:
@@ -44,6 +45,10 @@ def audit_directory(root: Path) -> dict:
     root = root.resolve()
     errors: list[str] = []
     manifests: dict[str, dict] = {}
+    # 先扫描整个发布根目录，孤立的 auth.json、日志或脚本也不能绕过审计。
+    for path in sorted(root.rglob("*")):
+        if path.is_file() and path.suffix.lower() in TEXT_SUFFIXES:
+            errors.extend(_audit_text(path.relative_to(root), path.read_text(encoding="utf-8-sig", errors="replace")))
     for manifest_path in sorted(root.rglob("capsule.json")):
         capsule = manifest_path.parent
         missing = sorted(name for name in REQUIRED_FILES if not (capsule / name).exists())
@@ -69,9 +74,6 @@ def audit_directory(root: Path) -> dict:
         license_name = manifest.get("provenance", {}).get("license")
         if not isinstance(license_name, str) or not license_name.strip() or license_name == "未声明":
             errors.append(f"{capsule.name}: 发布案例必须声明许可")
-        for path in sorted(capsule.rglob("*")):
-            if path.is_file() and path.suffix.lower() in {".json", ".txt", ".md", ".lean", ".ps1", ".sh", ".toml"}:
-                errors.extend(_audit_text(path.relative_to(root), path.read_text(encoding="utf-8", errors="replace")))
         if manifest.get("expected", {}).get("compile_ok"):
             source = (capsule / manifest.get("replay", {}).get("file", "Capsule.lean")).read_text(encoding="utf-8")
             if PLACEHOLDER.search(source):

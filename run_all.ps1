@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$Python = "python",
   [ValidateSet("command", "openai_compatible")]
   [string]$Provider = "openai_compatible",

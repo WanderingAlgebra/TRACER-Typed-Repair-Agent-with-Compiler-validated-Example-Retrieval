@@ -16,7 +16,7 @@ TRACER（Typed Repair Agent with Compiler-validated Example Retrieval）是面�
 ## 当前验证状态
 
 - 18 个 benchmark 任务对应 18 个 Lean 定理声明。
-- 39 项单元、端到端与文档一致性测试通过。
+- 49 项单元、端到端与文档一致性测试通过。
 - 成功候选会保存为可独立再次编译的隔离文件。
 - 修复过程中原始 benchmark 源文件保持不变。
 - OpenAI 兼容 provider 的错误正文、非敏感配置、usage 和 Lean 诊断均可追踪。

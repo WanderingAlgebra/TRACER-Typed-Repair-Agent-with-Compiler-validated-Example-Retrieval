@@ -67,6 +67,10 @@ class CapsuleTest(unittest.TestCase):
                 manifest = pack_capsule(base, source, base / "capsule", lines="1:2")
             self.assertEqual(manifest["expected"]["category"], "ok")
             self.assertTrue((base / "capsule" / "capsule.json").exists())
+            replay_ps1 = base / "capsule" / "replay.ps1"
+            self.assertTrue(replay_ps1.read_bytes().startswith(bytes([239, 187, 191])))
+            self.assertIn("$CapsuleRoot", replay_ps1.read_text(encoding="utf-8-sig"))
+            self.assertIn("REPOSITORY_ROOT", (base / "capsule" / "replay.sh").read_text(encoding="utf-8"))
             text = (base / "capsule" / "capsule.json").read_text(encoding="utf-8")
             self.assertNotIn("secret", text.lower())
             diagnostic = (base / "capsule" / "expected-diagnostic.txt").read_text(encoding="utf-8")

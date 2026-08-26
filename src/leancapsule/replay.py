@@ -9,6 +9,7 @@ from compiler import run_lean_file
 from diagnostics import normalize_diagnostics
 
 from .diagnostics_key import diagnostic_key
+from .privacy import redact_value
 from .schema import validate_manifest
 
 
@@ -38,7 +39,7 @@ def replay_capsule(capsule: Path, timeout: float = 180.0) -> dict:
     same_category = expected.get("category") == normalized.get("category")
     same_key = expected.get("diagnostic_key") == actual_key
     ok = same_status and same_category and same_key
-    return {
+    public_result = {
         "ok": ok,
         "capsule": capsule.name,
         "compile_ok": result.ok,
@@ -50,3 +51,4 @@ def replay_capsule(capsule: Path, timeout: float = 180.0) -> dict:
         "diagnostics": normalized,
         "compiler_command": result.compiler_command,
     }
+    return redact_value(public_result, (capsule, project_root, Path.home()))

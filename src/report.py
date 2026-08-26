@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
 import math
@@ -13,6 +14,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 PILOT = RESULTS / "real_pilot_runs.jsonl"
+REVIEW = RESULTS / "manual_review.csv"
 
 
 def usage_value(usage: object, *names: str) -> int:
@@ -35,16 +37,52 @@ def wilson(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
     return max(0.0, centre - margin), min(1.0, centre + margin)
 
 
-def load_frame() -> pd.DataFrame:
+def load_frame(experiment_id: str | None = None) -> pd.DataFrame:
     if not PILOT.exists():
         raise SystemExit("找不到 real_pilot_runs.jsonl：请先使用真实 provider 运行 evaluate.py")
     rows = [json.loads(line) for line in PILOT.read_text(encoding="utf-8").splitlines() if line.strip()]
     if not rows:
         raise SystemExit("real_pilot_runs.jsonl 为空：请先完成至少一个 provider 任务")
-    return pd.DataFrame(rows)
+    frame = pd.DataFrame(rows)
+    if "experiment_id" not in frame.columns:
+        if experiment_id:
+            raise SystemExit("旧轨迹不含 experiment_id，不能按实验批次选择；请重新运行正式 pilot")
+        return frame
+    identifiers = [str(value) for value in frame["experiment_id"].dropna().unique() if str(value)]
+    if experiment_id is None:
+        if len(identifiers) != 1:
+            raise SystemExit("轨迹包含多个实验批次，请使用 --experiment-id 明确选择，禁止自动合并")
+        experiment_id = identifiers[0]
+    selected = frame[frame["experiment_id"] == experiment_id].copy()
+    if selected.empty:
+        raise SystemExit(f"找不到 experiment_id={experiment_id} 的轨迹")
+    return selected
+
+
+def manual_review_complete(experiment_id: str | None, expected_pairs: set[tuple[str, str]] | None = None) -> bool:
+    """只有同一实验的全部题目×条件复核字段非空时才标记为可发布。"""
+
+    if not experiment_id or not REVIEW.exists():
+        return False
+    required = {"kernel_pass", "inappropriate_assumption", "leakage_risk", "reviewer_note"}
+    frame = pd.read_csv(REVIEW, dtype=str, encoding="utf-8-sig").fillna("")
+    if not required.issubset(frame.columns) or "experiment_id" not in frame.columns:
+        return False
+    matching = frame[frame.get("experiment_id", "") == experiment_id]
+    if matching.empty:
+        return False
+    if expected_pairs is not None:
+        actual_pairs = set(zip(matching["condition"], matching["problem_id"]))
+        if actual_pairs != expected_pairs or len(matching) != len(expected_pairs):
+            return False
+    return all(bool(str(value).strip()) for field in required for value in matching[field].tolist())
 
 
 def summarize(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    if "run_id" in frame.columns:
+        counts = frame.groupby(["condition", "problem_id"])["run_id"].nunique()
+        if bool((counts > 1).any()):
+            raise ValueError("同一条件和题目包含多个 run_id；请先按 experiment_id 选择单一实验批次")
     records: list[dict] = []
     final_failures: list[dict] = []
     for (condition, problem_id), group in frame.groupby(["condition", "problem_id"], sort=True):
@@ -68,7 +106,11 @@ def summarize(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
         total_tokens = sum(usage_value(item, "total_tokens") for item in group["usage"])
         if total_tokens == 0:
             total_tokens = prompt_tokens + completion_tokens
-        total_cost = sum(float(item or 0) for item in group.get("estimated_cost_usd", []))
+        cost_values = [
+            float(item) for item in group.get("estimated_cost_usd", [])
+            if isinstance(item, (int, float)) and not pd.isna(item)
+        ]
+        total_cost = sum(cost_values) if cost_values else None
         records.append(
             {
                 "condition": condition,
@@ -95,6 +137,7 @@ def summarize(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
         p3 = int(group["pass_at_3"].sum())
         p1_lo, p1_hi = wilson(p1, total)
         p3_lo, p3_hi = wilson(p3, total)
+        known_costs = [float(value) for value in group["cost_usd"] if isinstance(value, (int, float)) and not pd.isna(value)]
         summary_rows.append(
             {
                 "condition": condition,
@@ -112,7 +155,7 @@ def summarize(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
                 "avg_prompt_tokens": round(float(group["prompt_tokens"].mean()), 1),
                 "avg_completion_tokens": round(float(group["completion_tokens"].mean()), 1),
                 "avg_total_tokens": round(float(group["total_tokens"].mean()), 1),
-                "avg_cost_usd": round(float(group["cost_usd"].mean()), 8),
+                "avg_cost_usd": round(sum(known_costs) / len(known_costs), 8) if known_costs else None,
             }
         )
     summary = pd.DataFrame(summary_rows)
@@ -143,8 +186,12 @@ def summarize(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
         f"{key[0]}::{key[1]}": int(value)
         for key, value in (failures.value_counts(["condition", "category"]).items() if not failures.empty else [])
     }
+    experiment_id = str(frame.iloc[0].get("experiment_id")) if "experiment_id" in frame.columns else None
+    expected_review_pairs = set(zip(frame["condition"], frame["problem_id"]))
     report = {
         "pilot": "TRACER provider pilot",
+        "experiment_id": experiment_id,
+        "manual_review_complete": manual_review_complete(experiment_id, expected_review_pairs),
         "tasks": int(task_frame["problem_id"].nunique()),
         "conditions": summary.to_dict(orient="records"),
         "failure_types": failure_counts,
@@ -200,8 +247,10 @@ def write_report(summary: pd.DataFrame, failures: pd.DataFrame, report: dict) ->
         "|---|---:|---:|---|---:|---|---:|---:|---:|---:|",
     ]
     for row in summary.to_dict(orient="records"):
+        cost = row.get("avg_cost_usd")
+        cost_text = f"${cost:.8f}" if isinstance(cost, (int, float)) and not pd.isna(cost) else "未配置"
         lines.append(
-            f"| {row['condition']} | {row['tasks']} | {row['pass_at_1']}/{row['tasks']} ({row['pass_at_1_rate']:.1%}) | [{row['pass_at_1_wilson_low']:.1%}, {row['pass_at_1_wilson_high']:.1%}] | {row['pass_at_3']}/{row['tasks']} ({row['pass_at_3_rate']:.1%}) | [{row['pass_at_3_wilson_low']:.1%}, {row['pass_at_3_wilson_high']:.1%}] | {row['avg_rounds']:.2f} | {row['avg_compile_ms']:.1f} | {row['avg_total_tokens']:.1f} | ${row['avg_cost_usd']:.8f} |"
+            f"| {row['condition']} | {row['tasks']} | {row['pass_at_1']}/{row['tasks']} ({row['pass_at_1_rate']:.1%}) | [{row['pass_at_1_wilson_low']:.1%}, {row['pass_at_1_wilson_high']:.1%}] | {row['pass_at_3']}/{row['tasks']} ({row['pass_at_3_rate']:.1%}) | [{row['pass_at_3_wilson_low']:.1%}, {row['pass_at_3_wilson_high']:.1%}] | {row['avg_rounds']:.2f} | {row['avg_compile_ms']:.1f} | {row['avg_total_tokens']:.1f} | {cost_text} |"
         )
     lines += [
         "",
@@ -210,6 +259,7 @@ def write_report(summary: pd.DataFrame, failures: pd.DataFrame, report: dict) ->
         "- A 是题目-only 基线；B 和 C 分别加入编译诊断、编译诊断加本地示例。是否产生增益必须由本次 pilot 的逐题结果决定。",
         "- 每条成功证明都由 Lean 编译器检查；失败记录保留题目、候选、轮次和结构化诊断。",
         "- 18 道题为小样本冻结集，Wilson 区间用于表达不确定性，不用于强显著性结论。",
+        "- 人工复核台账未完整填写时，报告只能作为内部流程产物，不能作为正式发布结论。",
         "",
         "## 局限与复现",
         "",
@@ -221,7 +271,10 @@ def write_report(summary: pd.DataFrame, failures: pd.DataFrame, report: dict) ->
 
 
 def main() -> int:
-    summary, failures, report = summarize(load_frame())
+    parser = argparse.ArgumentParser(description="生成单一 TRACER 实验批次报告")
+    parser.add_argument("--experiment-id", help="当轨迹包含多个批次时必须明确指定")
+    args = parser.parse_args()
+    summary, failures, report = summarize(load_frame(args.experiment_id))
     write_report(summary, failures, report)
     print(summary.to_string(index=False))
     return 0

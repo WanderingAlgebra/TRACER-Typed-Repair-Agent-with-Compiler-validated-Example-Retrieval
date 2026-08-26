@@ -14,6 +14,7 @@ from diagnostics import normalize_diagnostics
 from .diagnostics_key import diagnostic_key
 from .extract import extract_theorem
 from .minimize import minimize_imports
+from .privacy import redact_text
 from .schema import SCHEMA_VERSION, validate_manifest
 
 
@@ -72,8 +73,26 @@ def _copy_local_imports(source: str, project_root: Path | None, destination: Pat
 
 def _write_scripts(out: Path) -> None:
     (out / "replay.sh").write_text(
-        "#!/usr/bin/env sh\nset -eu\npython -m leancapsule replay .\n",
+        "#!/usr/bin/env sh\nset -eu\n"
+        "SCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\n"
+        "REPOSITORY_ROOT=\"$SCRIPT_DIR\"\n"
+        "while [ \"$REPOSITORY_ROOT\" != \"/\" ] && [ ! -f \"$REPOSITORY_ROOT/leancapsule/__main__.py\" ]; do REPOSITORY_ROOT=$(dirname -- \"$REPOSITORY_ROOT\"); done\n"
+        "if [ -f \"$REPOSITORY_ROOT/leancapsule/__main__.py\" ]; then cd \"$REPOSITORY_ROOT\"; fi\n"
+        "python -m leancapsule replay \"$SCRIPT_DIR\"\n",
         encoding="utf-8",
+    )
+    (out / "replay.ps1").write_text(
+        "[CmdletBinding()] param()\n"
+        "$ErrorActionPreference = 'Stop'\n"
+        "$CapsuleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path\n"
+        "$RepositoryRoot = $CapsuleRoot\n"
+        "while ($RepositoryRoot -and -not (Test-Path -LiteralPath (Join-Path $RepositoryRoot 'leancapsule\\__main__.py'))) {\n"
+        "  $Parent = Split-Path -Parent $RepositoryRoot\n"
+        "  if ($Parent -eq $RepositoryRoot) { $RepositoryRoot = $null } else { $RepositoryRoot = $Parent }\n"
+        "}\n"
+        "if ($RepositoryRoot) { Push-Location $RepositoryRoot }\n"
+        "try { python -m leancapsule replay $CapsuleRoot; exit $LASTEXITCODE } finally { if ($RepositoryRoot) { Pop-Location } }\n",
+        encoding="utf-8-sig",
     )
 
 
@@ -88,11 +107,7 @@ def _public_diagnostics(text: str, source_file: Path, project_root: Path | None,
     cleaned = re.sub(r"(?m)^/(?:home|Users|tmp|private|var/tmp)/.+?(?=:\d+:\d+:\s*(?:error|warning))", source_file.name, cleaned)
     cleaned = re.sub(r"(?mi)^[A-Za-z]:[\\/].*$", "<search-path>", cleaned)
     cleaned = re.sub(r"(?m)^/(?:home|Users|tmp|private|var/tmp)/.*$", "<search-path>", cleaned)
-    return cleaned
-    (out / "replay.ps1").write_text(
-        "[CmdletBinding()] param()\n$ErrorActionPreference = 'Stop'\npython -m leancapsule replay .\nexit $LASTEXITCODE\n",
-        encoding="utf-8",
-    )
+    return redact_text(cleaned, tuple(path for path in (source_file.parent, project_root, capsule_root) if path))
 
 
 def pack_capsule(

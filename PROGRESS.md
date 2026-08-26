@@ -1,6 +1,6 @@
 # 当前工作进度
 
-更新时间：2026-08-25
+更新时间：2026-08-26
 
 ## 已完成
 
@@ -25,16 +25,23 @@
 - 将 Mathlib 冷启动回放预算调整为 180 秒，并避免环境脚本重复获取已存在的预编译缓存。
 - 修正 GitHub Actions 顺序：端到端测试依赖真实 Lean 编译器，现已在运行测试前安装 Lean，并增加顺序回归测试。
 - GitHub runner 的端到端 Lean 编译采用独立 120 秒预算；测试失败详情会直接写入 Actions Summary。
+- Provider 只允许同来源重定向，并在错误正文中隐藏密钥；Lean 子进程使用最小环境，不继承 API 密钥或其他令牌。
+- 候选拒绝显式本机元编程/IO 构造，并将 `sorryAx`、未完成证明警告视为失败；保留局部定义、严格匹配完全限定定理和 `lakefile.lean` 项目。
+- A/B/C 运行使用轮次感知缓存、`--fresh` 清理 SQLite 及旁车文件，并写入 `experiment_id`；报告禁止合并不同批次，未配置价格显示为“未配置”。
+- Capsule 回放脚本支持跨目录执行；审计扫描发布根目录孤立文件、标准 `auth.json` 凭据和脱敏路径；PowerShell 脚本统一 UTF-8 BOM 并检查 Mathlib 命令退出码。
+- 条件 C 会排除与评测命题完全相同的本地示例，避免把原题完整答案当作检索增益。
 
 ## 当前验证状态
 
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试 39/39：包含文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、Lean Action 仅安装模式、gallery、manifest、索引输出、路径清理和复核账本检查；`lake build` 通过。
+- 完整 Python 测试 49/49：包含安全边界、实验批次隔离、文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、Lean Action 仅安装模式、gallery、manifest、索引输出、路径清理和复核账本完整性检查；`lake build` 通过。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 
 ## 明确边界
 
 - capsule gallery 验收的是失败复现协议，不等同于真实模型 A/B/C 实验；模型实验需另行配置 provider、冻结模型参数并记录 token、延迟和编译次数。
 - 多文件依赖目前采用完整文件 fallback 与显式本地文件清单，不承诺任意项目的程序切片。
+- `manual_review.csv` 的 54 条人工复核仍必须由研究者逐条填写；系统不会自动伪造 kernel_pass、假设合理性或泄漏风险结论。
+- 本地编译隔离是环境清理和候选策略防护，不等同于操作系统级沙箱；运行不受信任项目时仍应使用容器或独立低权限环境。

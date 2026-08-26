@@ -56,9 +56,16 @@ def safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value)
 
 
-def canonical_request(prompt: str, condition: str, provider_metadata: dict[str, object]) -> str:
+def public_source_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(ROOT)).replace("\\", "/")
+    except ValueError:
+        return path.name
+
+
+def canonical_request(prompt: str, condition: str, provider_metadata: dict[str, object], round_no: int = 1) -> str:
     return json.dumps(
-        {"prompt": prompt, "condition": condition, "provider": provider_metadata},
+        {"prompt": prompt, "condition": condition, "round": round_no, "provider": provider_metadata},
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
@@ -102,6 +109,7 @@ def solve_problem(
     benchmark_id: str | None = None,
     tags: list[str] | None = None,
     difficulty: str | None = None,
+    experiment_id: str | None = None,
 ) -> dict:
     if condition not in {"A", "B", "C"}:
         raise ValueError("condition 必须是 A、B 或 C")
@@ -123,7 +131,7 @@ def solve_problem(
             if condition == "C":
                 retrieved = retrieve(theorem_name + " " + theorem_scope(source, theorem_name), examples, top_k=3)
             prompt = prompt_for(source, theorem_name, condition, feedback, retrieved)
-            request_text = canonical_request(prompt, condition, provider_metadata)
+            request_text = canonical_request(prompt, condition, provider_metadata, round_no)
             generation: Generation | None = cache.get(request_text)
             cache_hit = generation is not None
             provider_error = None
@@ -158,19 +166,30 @@ def solve_problem(
                     compile_ok = compiled.ok
                     compile_ms = compiled.elapsed_ms
                     raw_diagnostics = compiled.diagnostics
-                    diagnostic = normalize_diagnostics(raw_diagnostics, returncode=compiled.returncode, timed_out=compiled.timed_out)
+                    if "TRACER: 目标证明依赖未完成证明公理" in raw_diagnostics:
+                        diagnostic = {"category": "incomplete_proof", "summary": "目标证明依赖未完成证明公理", "feedback": "不得使用未完成证明公理，请生成可由内核独立检查的证明。", "errors": [], "truncated": False}
+                    else:
+                        diagnostic = normalize_diagnostics(raw_diagnostics, returncode=compiled.returncode, timed_out=compiled.timed_out)
                 except Exception as exc:
-                    diagnostic = {"category": "patch_error", "summary": str(exc)[:700], "feedback": "无法定位或补丁化目标证明区域，请检查定理名和占位符。", "errors": [], "truncated": len(str(exc)) > 700}
+                    security_rejection = "禁止的本机执行构造" in str(exc)
+                    diagnostic = {
+                        "category": "candidate_security" if security_rejection else "patch_error",
+                        "summary": str(exc)[:700],
+                        "feedback": "候选触发本机执行安全策略，请只使用纯证明项和受信任 tactic。" if security_rejection else "无法定位或补丁化目标证明区域，请检查定理名和占位符。",
+                        "errors": [],
+                        "truncated": len(str(exc)) > 700,
+                    }
                     compile_ok = False
                     compile_ms = 0.0
                     raw_diagnostics = str(exc)
             record = {
                 "run_id": run_id,
+                "experiment_id": experiment_id,
                 "problem_id": problem_id,
                 "benchmark_id": benchmark_id,
                 "tags": tags or [],
                 "difficulty": difficulty,
-                "source_file": str(source_path),
+                "source_file": public_source_path(source_path),
                 "theorem": theorem_name,
                 "condition": condition,
                 "round": round_no,

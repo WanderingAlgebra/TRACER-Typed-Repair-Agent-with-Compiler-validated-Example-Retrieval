@@ -7,15 +7,38 @@ import os
 import re
 import subprocess
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 
 
-def configured_pricing() -> dict[str, float]:
+def _optional_price(name: str) -> float | None:
+    value = os.environ.get(name)
+    return float(value) if value not in (None, "") else None
+
+
+def configured_pricing() -> dict[str, float | None]:
     return {
-        "input_price_per_1k": float(os.environ.get("LEAN_PROOF_INPUT_PRICE_PER_1K", "0")),
-        "output_price_per_1k": float(os.environ.get("LEAN_PROOF_OUTPUT_PRICE_PER_1K", "0")),
+        "input_price_per_1k": _optional_price("LEAN_PROOF_INPUT_PRICE_PER_1K"),
+        "output_price_per_1k": _optional_price("LEAN_PROOF_OUTPUT_PRICE_PER_1K"),
     }
+
+
+def _origin(url: str) -> tuple[str, str, int | None]:
+    parsed = urllib.parse.urlsplit(url)
+    port = parsed.port
+    if port is None:
+        port = 443 if parsed.scheme.lower() == "https" else 80 if parsed.scheme.lower() == "http" else None
+    return parsed.scheme.lower(), (parsed.hostname or "").lower(), port
+
+
+class SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """只允许同来源跳转，防止认证头被转发给其他主机。"""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if _origin(req.full_url) != _origin(newurl):
+            raise RuntimeError("Provider 拒绝携带认证信息进行跨来源重定向")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 @dataclass
@@ -71,6 +94,11 @@ class OpenAICompatibleProvider(Provider):
     name = "openai_compatible"
 
     def __init__(self, url: str, api_key: str, model: str, temperature: float, max_tokens: int) -> None:
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("API URL 必须是有效的 HTTP 或 HTTPS 地址")
+        if parsed.username or parsed.password:
+            raise ValueError("API URL 不能内嵌认证信息")
         self.url = url
         self.api_key = api_key
         self.model = model
@@ -94,11 +122,13 @@ class OpenAICompatibleProvider(Provider):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=90) as response:
+            opener = urllib.request.build_opener(SameOriginRedirectHandler())
+            with opener.open(request, timeout=90) as response:
                 body = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             response_body = exc.read().decode("utf-8", errors="replace").strip()
             detail = response_body[:2000] if response_body else str(exc.reason)
+            detail = detail.replace(self.api_key, "[已隐藏的 API 密钥]")
             raise RuntimeError(f"HTTP {exc.code} from provider: {detail}") from exc
         return parse_generation(json.dumps(body, ensure_ascii=False), self.name)
 

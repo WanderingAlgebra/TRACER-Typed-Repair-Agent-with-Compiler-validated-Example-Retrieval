@@ -57,6 +57,50 @@ class ReportMetricTest(unittest.TestCase):
         self.assertEqual(report["by_tag"][0]["tag"], "logic")
         self.assertTrue(failures.empty)
 
+    def test_mixed_run_ids_are_rejected(self):
+        import pandas as pd
+        from report import summarize
+
+        frame = pd.DataFrame(
+            [
+                {"run_id": "run-a", "condition": "A", "problem_id": "p1", "round": 1, "compile_ok": True, "compile_elapsed_ms": 1, "retrieved_examples": [], "usage": {}, "diagnostic": {"category": "ok"}, "tags": [], "difficulty": None},
+                {"run_id": "run-b", "condition": "A", "problem_id": "p1", "round": 1, "compile_ok": False, "compile_elapsed_ms": 1, "retrieved_examples": [], "usage": {}, "diagnostic": {"category": "compile_error"}, "tags": [], "difficulty": None},
+            ]
+        )
+        with self.assertRaisesRegex(ValueError, "多个 run_id"):
+            summarize(frame)
+
+    def test_unconfigured_cost_is_none(self):
+        import pandas as pd
+        from report import summarize
+
+        frame = pd.DataFrame(
+            [{"condition": "A", "problem_id": "p1", "round": 1, "compile_ok": True, "compile_elapsed_ms": 1, "retrieved_examples": [], "usage": {}, "estimated_cost_usd": None, "diagnostic": {"category": "ok"}, "tags": [], "difficulty": None}]
+        )
+        summary, _, _ = summarize(frame)
+        self.assertIsNone(summary.iloc[0]["avg_cost_usd"])
+
+    def test_manual_review_requires_every_problem_condition_pair(self):
+        import tempfile
+        import report
+
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "manual_review.csv"
+            path.write_text(
+                "experiment_id,problem_id,condition,kernel_pass,inappropriate_assumption,leakage_risk,reviewer_note\n"
+                "exp-1,p1,A,yes,no,no,checked\n",
+                encoding="utf-8",
+            )
+            previous = report.REVIEW
+            try:
+                report.REVIEW = path
+                self.assertFalse(report.manual_review_complete("exp-1", {("A", "p1"), ("B", "p1")}))
+                with path.open("a", encoding="utf-8", newline="") as handle:
+                    handle.write("exp-1,p1,B,yes,no,no,checked\n")
+                self.assertTrue(report.manual_review_complete("exp-1", {("A", "p1"), ("B", "p1")}))
+            finally:
+                report.REVIEW = previous
+
 
 if __name__ == "__main__":
     unittest.main()

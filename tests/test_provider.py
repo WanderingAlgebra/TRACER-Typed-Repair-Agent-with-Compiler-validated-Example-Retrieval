@@ -3,12 +3,12 @@ import sys
 import unittest
 import urllib.error
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from provider import CommandProvider, OpenAICompatibleProvider, clean_candidate, parse_generation
+from provider import CommandProvider, OpenAICompatibleProvider, SameOriginRedirectHandler, clean_candidate, parse_generation
 
 
 class ProviderTest(unittest.TestCase):
@@ -33,9 +33,17 @@ class ProviderTest(unittest.TestCase):
             {},
             io.BytesIO(b'{"error":{"message":"invalid model"}}'),
         )
-        with patch("urllib.request.urlopen", side_effect=error):
+        opener = MagicMock()
+        opener.open.side_effect = error
+        with patch("urllib.request.build_opener", return_value=opener):
             with self.assertRaisesRegex(RuntimeError, "invalid model"):
                 provider.generate("demo prompt")
+
+    def test_cross_origin_redirect_is_rejected(self):
+        handler = SameOriginRedirectHandler()
+        request = urllib.request.Request("https://provider.example/v1/chat/completions")
+        with self.assertRaisesRegex(RuntimeError, "跨来源"):
+            handler.redirect_request(request, None, 302, "Found", {}, "https://collector.example/steal")
 
     def test_provider_metadata_separates_model_configuration(self):
         left = OpenAICompatibleProvider("https://example.test", "secret", "model-a", 0.0, 800)

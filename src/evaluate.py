@@ -7,6 +7,7 @@ import csv
 import json
 import sys
 import time
+import uuid
 from pathlib import Path
 
 from agent import append_jsonl, solve_problem
@@ -17,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK_PATH = ROOT / "benchmarks" / "manifest.json"
 PILOT_PATH = ROOT / "results" / "real_pilot_runs.jsonl"
 REVIEW_PATH = ROOT / "results" / "manual_review.csv"
+CACHE_PATH = ROOT / "results" / "requests.sqlite3"
 
 
 def load_benchmarks() -> list[dict]:
@@ -26,15 +28,17 @@ def load_benchmarks() -> list[dict]:
     return problems
 
 
-def write_manual_review(conditions: list[str]) -> None:
+def write_manual_review(conditions: list[str], experiment_id: str) -> None:
     """为每个冻结题目和条件组合建立复核台账。"""
     REVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
     existing: dict[tuple[str, str], dict[str, str]] = {}
     if REVIEW_PATH.exists():
         with REVIEW_PATH.open("r", encoding="utf-8-sig", newline="") as handle:
             for row in csv.DictReader(handle):
-                existing[(row.get("problem_id", ""), row.get("condition", ""))] = row
+                if row.get("experiment_id") == experiment_id:
+                    existing[(row.get("problem_id", ""), row.get("condition", ""))] = row
     fields = [
+        "experiment_id",
         "problem_id",
         "condition",
         "kernel_pass",
@@ -51,6 +55,7 @@ def write_manual_review(conditions: list[str]) -> None:
                 row = existing.get(key, {})
                 writer.writerow(
                     {
+                        "experiment_id": experiment_id,
                         "problem_id": problem["id"],
                         "condition": condition,
                         "kernel_pass": row.get("kernel_pass", ""),
@@ -61,10 +66,20 @@ def write_manual_review(conditions: list[str]) -> None:
                 )
 
 
-def run_pilot(conditions: list[str], provider, max_rounds: int, timeout: float, fresh: bool) -> None:
-    if fresh and PILOT_PATH.exists():
-        PILOT_PATH.unlink()
-    write_manual_review(conditions)
+def _clear_request_cache() -> None:
+    for path in (CACHE_PATH, CACHE_PATH.with_name(CACHE_PATH.name + "-wal"), CACHE_PATH.with_name(CACHE_PATH.name + "-shm")):
+        if path.exists():
+            path.unlink()
+
+
+def run_pilot(conditions: list[str], provider, max_rounds: int, timeout: float, fresh: bool, experiment_id: str | None = None) -> str:
+    experiment_id = experiment_id or str(uuid.uuid4())
+    if fresh:
+        if PILOT_PATH.exists():
+            PILOT_PATH.unlink()
+        _clear_request_cache()
+    write_manual_review(conditions, experiment_id)
+    print(f"experiment_id={experiment_id}")
     for condition in conditions:
         for problem in load_benchmarks():
             try:
@@ -76,8 +91,8 @@ def run_pilot(conditions: list[str], provider, max_rounds: int, timeout: float, 
                     max_rounds,
                     timeout,
                     ROOT / "examples",
-                    ROOT / "results" / "requests.sqlite3",
-                    ROOT / "results" / "solutions",
+                    CACHE_PATH,
+                    ROOT / "results" / "solutions" / experiment_id,
                     PILOT_PATH,
                     problem["proof_region"]["start"],
                     problem["proof_region"]["end"],
@@ -85,6 +100,7 @@ def run_pilot(conditions: list[str], provider, max_rounds: int, timeout: float, 
                     problem["id"],
                     problem.get("tags", []),
                     problem.get("difficulty"),
+                    experiment_id,
                 )
                 print(f"{condition}: {problem['id']} -> {'PASS' if result['compile_ok'] else 'FAIL'} ({result['round']} round(s))")
             except Exception as exc:
@@ -93,11 +109,12 @@ def run_pilot(conditions: list[str], provider, max_rounds: int, timeout: float, 
                     PILOT_PATH,
                     {
                         "run_id": f"task-error-{condition}-{problem['id']}",
+                        "experiment_id": experiment_id,
                         "problem_id": problem["id"],
                         "benchmark_id": problem["id"],
                         "tags": problem.get("tags", []),
                         "difficulty": problem.get("difficulty"),
-                        "source_file": str(ROOT / problem["file"]),
+                        "source_file": problem["file"],
                         "theorem": problem["theorem"],
                         "condition": condition,
                         "round": 0,
@@ -119,6 +136,7 @@ def run_pilot(conditions: list[str], provider, max_rounds: int, timeout: float, 
                     },
                 )
                 print(f"{condition}: {problem['id']} -> TASK_ERROR")
+    return experiment_id
 
 
 def main() -> int:
@@ -129,6 +147,7 @@ def main() -> int:
     parser.add_argument("--max-rounds", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=20.0)
     parser.add_argument("--fresh", action="store_true")
+    parser.add_argument("--experiment-id", help="为整批 A/B/C 运行指定稳定标识；默认自动生成")
     args = parser.parse_args()
     conditions = [item.strip().upper() for item in args.conditions.split(",") if item.strip()]
     if any(item not in {"A", "B", "C"} for item in conditions):
@@ -136,7 +155,7 @@ def main() -> int:
     if not 1 <= args.max_rounds <= 3:
         raise SystemExit("--max-rounds 必须在 1 到 3 之间")
     provider = build_provider(args.provider, args.provider_command)
-    run_pilot(conditions, provider, args.max_rounds, args.timeout, args.fresh)
+    run_pilot(conditions, provider, args.max_rounds, args.timeout, args.fresh, args.experiment_id)
     return 0
 
 
