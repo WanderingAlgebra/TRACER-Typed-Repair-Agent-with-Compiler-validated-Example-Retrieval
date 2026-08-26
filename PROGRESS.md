@@ -2,6 +2,8 @@
 
 更新时间：2026-08-26
 
+补丁明细见 [CHANGELOG.md](CHANGELOG.md)；本文件只维护当前状态和剩余边界。
+
 ## 已完成
 
 - 将 TRACER 的编译器封装扩展为可直接运行 Lean 文件的 `run_lean_file()`。

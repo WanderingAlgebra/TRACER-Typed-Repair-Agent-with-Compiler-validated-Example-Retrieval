@@ -12,6 +12,7 @@ TRACER（Typed Repair Agent with Compiler-validated Example Retrieval）是面�
 6. `src/evaluate.py`：运行冻结的 18 题三条件 pilot。
 7. `src/report.py`：计算通过率、Wilson 区间、token/成本汇总和题型分析。
 8. `src/leancapsule/`：打包、回放和发布审计可复现的 Lean 失败工件。
+9. `CHANGELOG.md`：记录影响安全、实验协议和发布审计的补丁。
 
 ## 当前验证状态
 
