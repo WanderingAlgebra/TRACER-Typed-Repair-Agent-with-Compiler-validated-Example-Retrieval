@@ -1,6 +1,6 @@
 # Results
 
-正式评测结果写入 `real_pilot_runs.jsonl`，成功证明按 `solutions/<experiment_id>/<condition>/` 保存，请求缓存写入 `requests.sqlite3`。`report.py` 还会生成 token 汇总和 `pilot_topic_summary.csv`。
+正式评测结果写入 `real_pilot_runs.jsonl`，成功证明按 `solutions/<condition>/` 保存；实验批次由每条 JSONL 的 `experiment_id` 区分，请求缓存写入 `requests.sqlite3`。`report.py` 还会生成 token 汇总和 `pilot_topic_summary.csv`。
 
 交互式单题运行默认写入 `agent_runs.jsonl`。其中 `provider_error` 表示接口调用失败；若该字段为空且存在 Lean `diagnostic`，说明请求已获得候选，失败发生在编译验证阶段。候选会在落盘前移除常见 Markdown 代码围栏，历史缓存命中时也会重新执行该步骤。
 

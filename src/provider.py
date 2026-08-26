@@ -12,6 +12,22 @@ import urllib.request
 from dataclasses import dataclass, field
 
 
+_SECRET_PATTERNS = (
+    re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}", re.IGNORECASE),
+    re.compile(r"\b(?:sk|yi)-[A-Za-z0-9._~+/=-]{12,}", re.IGNORECASE),
+    re.compile(r"(?:api[_ -]?key|authorization|access[_ -]?token|refresh[_ -]?token)\s*[:=]\s*[\"']?[A-Za-z0-9._~+/=-]{12,}", re.IGNORECASE),
+)
+
+
+def redact_sensitive_text(value: object) -> str:
+    """脱敏 provider 异常或候选中的认证信息。"""
+
+    text = str(value)
+    for pattern in _SECRET_PATTERNS:
+        text = pattern.sub("[已隐藏的认证信息]", text)
+    return text
+
+
 def _optional_price(name: str) -> float | None:
     value = os.environ.get(name)
     return float(value) if value not in (None, "") else None

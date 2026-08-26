@@ -1,4 +1,4 @@
 -- tags: propositional_logic and
-example (p q : Prop) : p ∧ q → q ∧ p := by
+example (p q : Prop) : p ∧ q → p ∨ q := by
   intro h
-  exact And.intro h.right h.left
+  exact Or.inl h.left
