@@ -113,6 +113,8 @@ python src/agent.py solve `
 
 ### 正式 pilot、报告门禁与导出
 
+完整的 Windows 操作步骤见 [`docs/REAL_PILOT_GUIDE.md`](docs/REAL_PILOT_GUIDE.md)。
+
 先使用真实 provider 运行完整冻结集。`--fresh` 会把旧日志、证明、复核表和报告移入可恢复的 `results/archive/`；默认同时清空持久缓存。若明确使用 `--reuse-cache`，报告只能作为带警告的草稿。
 
 ```powershell
