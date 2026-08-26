@@ -1,31 +1,21 @@
-# TRACER 验收状态
+# TRACER Pilot Report
 
-当前版本已经移除离线答案表驱动的 A/B/C 评测路径。正式 pilot 必须通过 `command` 或 `openai_compatible` provider 运行；没有 provider 时不会生成指标。
+- Experiment ID: `pilot-20260826T122354Z-d628742d`
+- Status: **FORMAL**
+- Cache hits: `0`
+- Provider configuration: `{"input_price_per_1k": null, "max_tokens": 12000, "model": "deepseek-v4-pro", "output_price_per_1k": null, "provider": "openai_compatible", "temperature": 0.0, "url": "https://api.deepseek.com/chat/completions"}`
+- Candidate policy: `{"environment": "minimal", "meta_execution": "blocked", "version": "tracer-candidate-v1"}`
 
-## 当前可验收项
+## 汇总
 
-- 任意 Lean 文件、定理名和证明区域可以通过 `src/agent.py solve` 输入。
-- A/B/C 只改变 prompt 上下文：题目、题目加诊断、题目加诊断和本地示例。
-- 每轮最多三次，Lean 编译结果作为 verifier。
-- 请求使用 SQLite 精确文本唯一键缓存，成功证明保存到 `results/solutions/`。
-- 失败候选、结构化诊断、provider 配置、usage、缓存命中、编译命令和编译耗时保存到 JSONL。
-- 模型返回的 Markdown 代码围栏会在解析和编译边界清洗；旧缓存候选同样适用。
-- CLI 失败输出会区分 provider 调用错误与 Lean 语法、类型或目标错误，不能仅凭 `compile_ok` 判断 API 状态。
-- 报告同时生成平均 token、可选的估算 API 成本和按题型汇总；人工复核台账使用同一 benchmark ID。
-
-## 正式 pilot 命令
-
-```powershell
-python src/evaluate.py --provider openai_compatible --conditions A,B,C --fresh
-python src/report.py
-```
-
-或者：
-
-```powershell
-python src/evaluate.py --provider command --provider-command 'python my_provider.py' --conditions A,B,C --fresh
-```
+| 条件 | 题数 | pass@1 | Wilson 95% CI | pass@3 | Wilson 95% CI | 平均轮次 | 平均编译毫秒 | 平均总 token | 估算成本 |
+|---|---:|---:|---|---:|---|---:|---:|---:|---:|
+| A | 18 | 18/18 (100.0%) | [82.4%, 100.0%] | 18/18 (100.0%) | [82.4%, 100.0%] | 1.00 | 1416.5 | 1750.4 | unknown |
+| B | 18 | 16/18 (88.9%) | [67.2%, 96.9%] | 18/18 (100.0%) | [82.4%, 100.0%] | 1.11 | 1107.7 | 1841.9 | unknown |
+| C | 18 | 18/18 (100.0%) | [82.4%, 100.0%] | 18/18 (100.0%) | [82.4%, 100.0%] | 1.00 | 1065.3 | 2906.1 | unknown |
 
 ## 解释边界
 
-正式结果必须使用同一个 provider、模型、温度、最大输出长度和固定题集。报告会记录真实 usage 与按题型结果；题目与本地示例的相似性仍需人工标注，Wilson 区间只作为小样本 pilot evidence。没有真实 provider 的旧离线结果不具有实验解释力。
+- 18 道题是工作流 pilot，不构成通用自动定理证明能力或 SOTA 证据。
+- C 条件的本地示例与部分评测题高度相似，泄漏风险必须逐题人工复核。
+- 只有状态为 FORMAL、完整保留对应 JSONL 与 proof artifacts 的报告才能用于正式结论。

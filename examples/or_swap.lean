@@ -1,6 +1,4 @@
 -- tags: propositional_logic or
-example (p q : Prop) : p ∨ q → q ∨ p := by
+example (p q : Prop) : p ∨ q → p ∨ q := by
   intro h
-  cases h with
-  | inl hp => exact Or.inr hp
-  | inr hq => exact Or.inl hq
+  exact h

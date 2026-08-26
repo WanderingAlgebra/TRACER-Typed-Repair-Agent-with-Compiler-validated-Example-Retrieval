@@ -32,13 +32,15 @@
 - A/B/C 运行使用轮次感知缓存、`--fresh` 清理 SQLite 及旁车文件，并写入 `experiment_id`；报告禁止合并不同批次，未配置价格显示为“未配置”。
 - Capsule 回放脚本支持跨目录执行；审计扫描发布根目录孤立文件、标准 `auth.json` 凭据和脱敏路径；PowerShell 脚本统一 UTF-8 BOM 并检查 Mathlib 命令退出码。
 - 条件 C 会排除与评测命题完全相同的本地示例，避免把原题完整答案当作检索增益。
+- 吸收 leiteng 分支的临时 HOME/TMP/APPDATA 隔离、候选安全策略、严格 pilot 校验、正式报告门禁和脱敏导出流程；导出清单只记录相对路径与文件大小，不执行摘要计算。
+- `results/solutions/` 会按条件保存每个成功候选，`results/real_pilot_runs.jsonl` 保存逐轮原始轨迹；`evaluate.py --fresh` 会先归档旧实验，避免不同批次混合。
 
 ## 当前验证状态
 
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试 49/49：包含安全边界、实验批次隔离、文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、Lean Action 仅安装模式、gallery、manifest、索引输出、路径清理和复核账本完整性检查；`lake build` 通过。
+- 完整 Python 测试 56/56：覆盖安全边界、真实反馈重试、实验批次隔离、文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、gallery、manifest、索引输出、路径清理、复核账本和 pilot 门禁检查；`lake build` 通过。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 
 ## 明确边界
@@ -46,4 +48,5 @@
 - capsule gallery 验收的是失败复现协议，不等同于真实模型 A/B/C 实验；模型实验需另行配置 provider、冻结模型参数并记录 token、延迟和编译次数。
 - 多文件依赖目前采用完整文件 fallback 与显式本地文件清单，不承诺任意项目的程序切片。
 - `manual_review.csv` 的 54 条人工复核仍必须由研究者逐条填写；系统不会自动伪造 kernel_pass、假设合理性或泄漏风险结论。
+- 本次代码迁移没有伪造真实 provider 轨迹；若 `results/real_pilot_runs.jsonl` 尚未由真实 provider 生成，严格校验和导出会明确拒绝，不能把 smoke/mock 记录冒充正式实验。
 - 本地编译隔离是环境清理和候选策略防护，不等同于操作系统级沙箱；运行不受信任项目时仍应使用容器或独立低权限环境。

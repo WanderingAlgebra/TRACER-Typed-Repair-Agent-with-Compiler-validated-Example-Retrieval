@@ -26,6 +26,8 @@ jobs:
       # 端到端测试会调用 Lake 环境，先完成一次项目构建并预热编译环境。
       - name: Build Lean project
         run: lake build
+      - name: Check Python modules
+        run: python -m compileall -q src scripts tests
       - name: Run tests
         run: python scripts/run_ci_tests.py
       - name: Audit public capsules

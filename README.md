@@ -39,7 +39,7 @@ python -m leancapsule gallery capsules --out capsules/index.json
 
 所有命令都输出机器可读 JSON；`replay`、`verify`、`audit` 和 `gallery` 会用进程退出码表示是否通过。Mathlib 冷启动可能需要较长时间，因此回放默认超时为 180 秒。
 
-当前修订已通过 49 项 Python 自动化测试、`lake build` 和 24 个公开 Capsule 的发布审计。正式 A/B/C 模型实验与 54 条人工复核仍属于发布前工作，不会由仓库中的示例结果代替。
+当前修订包含严格的 pilot 校验、正式报告门禁和脱敏导出流程。仓库中的示例结果不会代替真实 A/B/C 模型实验；正式结论必须同时具备完整原始 JSONL 轨迹、成功证明文件和人工复核。
 
 使用 `--theorem` 时，工具会先尝试保留 imports、namespace 和目标定理的 standalone 文件；如果编译结果与原始诊断不一致，就自动退回完整文件。standalone 成功后会在固定编译预算内逐个尝试删除 imports，也可以使用 `--no-minimize-imports` 关闭。
 
@@ -56,6 +56,8 @@ Mathlib 案例使用独立的 `mathlib_project/` 依赖工程。首次回放前�
 ```
 
 Linux/macOS 可执行 `bash scripts/setup_mathlib.sh`。该步骤会按 `mathlib_project/lakefile.lean` 中的固定版本下载依赖和预编译缓存；依赖缓存不纳入仓库。没有网络或未准备缓存时，Std 与 project-local 案例仍可独立回放，Mathlib 案例会明确报告缺少依赖环境。
+
+若网络中断导致 `.lake/packages/mathlib` 只留下残缺 Git 目录，Windows 脚本会自动清理该可再生成目录后重试。使用 PowerShell 时请先设置正确的工具链目录：`$env:ELAN_HOME = "$env:USERPROFILE\\.elan"`；若通过本地代理联网，同时设置 `HTTP_PROXY` 和 `HTTPS_PROXY`。
 
 ## 证明修复 Agent
 
@@ -81,7 +83,7 @@ python src/agent.py solve `
   --condition B `
   --provider openai_compatible `
   --api-url "https://example.invalid/v1/chat/completions" `
-  --model "your-model" `
+  --model "deepseek-v4-pro" `
   --api-key-prompt
 ```
 
@@ -94,14 +96,14 @@ python src/agent.py solve `
   --condition B `
   --provider openai_compatible `
   --api-url "https://api.deepseek.com/chat/completions" `
-  --model "your-deepseek-model" `
+  --model "deepseek-v4-pro" `
   --temperature 0 `
-  --max-tokens 2000 `
+  --max-tokens 8000 `
   --api-key-prompt `
   --max-rounds 3
 ```
 
-模型名称必须替换为账户实际可用的名称。模型即使返回 Markdown 的 `lean` 代码围栏，TRACER 也会先提取其中的局部证明，再交给 Lean 编译器；相同请求命中旧缓存时也会执行同样的清洗。
+如果账户不支持该模型，再替换为接口返回的其他可用模型名称；不要保留占位符文字。模型即使返回 Markdown 的 `lean` 代码围栏，TRACER 也会先提取其中的局部证明，再交给 Lean 编译器；相同请求命中旧缓存时也会执行同样的清洗。
 
 ### 如何判断失败位置
 
@@ -110,6 +112,21 @@ python src/agent.py solve `
 - `compile_ok: false` 本身不代表 API 损坏；应同时阅读 `diagnostic`。
 - 每轮详细候选、缓存命中、模型 usage 和编译诊断记录在 `results/agent_runs.jsonl`。
 - 成功证明保存到 `results/solutions/`；持续失败的最后候选保存到 `results/solutions/failures/`。
+
+### 正式 pilot、报告门禁与导出
+
+完整的 Windows 操作步骤见 [`docs/REAL_PILOT_GUIDE.md`](docs/REAL_PILOT_GUIDE.md)。
+
+先使用真实 provider 运行完整冻结集。`--fresh` 会把旧日志、证明、复核表和报告移入可恢复的 `results/archive/`；默认同时清空持久缓存。若明确使用 `--reuse-cache`，报告只能作为带警告的草稿。
+
+```powershell
+python src/evaluate.py --provider openai_compatible --api-url "https://api.example/v1/chat/completions" --model "deepseek-v4-pro" --api-key-prompt --conditions A,B,C --fresh
+python scripts/validate_pilot.py --runs results/real_pilot_runs.jsonl --require-manual-review
+python src/report.py
+python scripts/export_pilot.py --out ..\TRACER-pilot-handoff
+```
+
+`validate_pilot.py` 检查 54 个题目×条件组合、连续轮次、统一 provider 配置、候选安全策略、基础设施错误和缓存命中；`report.py` 在门禁不通过时拒绝生成 formal 报告；`export_pilot.py` 只导出通过复核的轨迹、报告和成功 `.lean` 文件，并清理本机路径与认证信息。
 
 也可以使用本地 HTTP 接口：
 
