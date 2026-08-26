@@ -21,7 +21,7 @@ lake build
 
 ```powershell
 $env:LEAN_PROOF_API_URL = "https://api.deepseek.com/chat/completions"
-$env:LEAN_PROOF_MODEL = "你的实际模型名"
+$env:LEAN_PROOF_MODEL = "deepseek-v4-pro"
 $env:LEAN_PROOF_TEMPERATURE = "0"
 $env:LEAN_PROOF_MAX_TOKENS = "2000"
 ```
@@ -53,7 +53,7 @@ $env:LEAN_PROOF_OUTPUT_PRICE_PER_1K = "0"
 python src/evaluate.py `
   --provider openai_compatible `
   --api-url "https://api.deepseek.com/chat/completions" `
-  --model "你的实际模型名" `
+  --model "deepseek-v4-pro" `
   --temperature 0 `
   --max-tokens 2000 `
   --api-key-prompt `

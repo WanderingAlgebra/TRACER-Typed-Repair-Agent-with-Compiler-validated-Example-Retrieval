@@ -81,7 +81,7 @@ python src/agent.py solve `
   --condition B `
   --provider openai_compatible `
   --api-url "https://example.invalid/v1/chat/completions" `
-  --model "your-model" `
+  --model "deepseek-v4-pro" `
   --api-key-prompt
 ```
 
@@ -94,14 +94,14 @@ python src/agent.py solve `
   --condition B `
   --provider openai_compatible `
   --api-url "https://api.deepseek.com/chat/completions" `
-  --model "your-deepseek-model" `
+  --model "deepseek-v4-pro" `
   --temperature 0 `
   --max-tokens 2000 `
   --api-key-prompt `
   --max-rounds 3
 ```
 
-模型名称必须替换为账户实际可用的名称。模型即使返回 Markdown 的 `lean` 代码围栏，TRACER 也会先提取其中的局部证明，再交给 Lean 编译器；相同请求命中旧缓存时也会执行同样的清洗。
+如果账户不支持该模型，再替换为接口返回的其他可用模型名称；不要保留占位符文字。模型即使返回 Markdown 的 `lean` 代码围栏，TRACER 也会先提取其中的局部证明，再交给 Lean 编译器；相同请求命中旧缓存时也会执行同样的清洗。
 
 ### 如何判断失败位置
 
@@ -118,7 +118,7 @@ python src/agent.py solve `
 先使用真实 provider 运行完整冻结集。`--fresh` 会把旧日志、证明、复核表和报告移入可恢复的 `results/archive/`；默认同时清空持久缓存。若明确使用 `--reuse-cache`，报告只能作为带警告的草稿。
 
 ```powershell
-python src/evaluate.py --provider openai_compatible --api-url "https://api.example/v1/chat/completions" --model "your-model" --api-key-prompt --conditions A,B,C --fresh
+python src/evaluate.py --provider openai_compatible --api-url "https://api.example/v1/chat/completions" --model "deepseek-v4-pro" --api-key-prompt --conditions A,B,C --fresh
 python scripts/validate_pilot.py --runs results/real_pilot_runs.jsonl --require-manual-review
 python src/report.py
 python scripts/export_pilot.py --out ..\TRACER-pilot-handoff
