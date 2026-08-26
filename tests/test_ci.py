@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ContinuousIntegrationTest(unittest.TestCase):
+    def test_ci_runner_adds_repository_root_to_module_search_path(self):
+        runner = (ROOT / "scripts" / "run_ci_tests.py").read_text(encoding="utf-8")
+        self.assertIn("sys.path.insert(0, str(ROOT))", runner)
+
     def test_lean_is_installed_before_end_to_end_tests(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         self.assertLess(workflow.index("- name: Install Lean"), workflow.index("- name: Run tests"))
