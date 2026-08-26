@@ -57,6 +57,8 @@ Mathlib 案例使用独立的 `mathlib_project/` 依赖工程。首次回放前�
 
 Linux/macOS 可执行 `bash scripts/setup_mathlib.sh`。该步骤会按 `mathlib_project/lakefile.lean` 中的固定版本下载依赖和预编译缓存；依赖缓存不纳入仓库。没有网络或未准备缓存时，Std 与 project-local 案例仍可独立回放，Mathlib 案例会明确报告缺少依赖环境。
 
+若网络中断导致 `.lake/packages/mathlib` 只留下残缺 Git 目录，Windows 脚本会自动清理该可再生成目录后重试。使用 PowerShell 时请先设置正确的工具链目录：`$env:ELAN_HOME = "$env:USERPROFILE\\.elan"`；若通过本地代理联网，同时设置 `HTTP_PROXY` 和 `HTTPS_PROXY`。
+
 ## 证明修复 Agent
 
 目标文件可以包含 `-- PROOF_START` / `-- PROOF_END` 标记，也可以包含唯一的 `sorry` 占位符。原文件不会被覆盖，成功的隔离证明会保存到 `results/solutions/`。

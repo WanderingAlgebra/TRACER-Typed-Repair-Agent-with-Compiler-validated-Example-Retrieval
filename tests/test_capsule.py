@@ -23,6 +23,12 @@ class CapsuleTest(unittest.TestCase):
         right = diagnostic_key({"category": "type_mismatch", "summary": "/var/tmp/b.lean:20:8: bad type"})
         self.assertEqual(left, right)
 
+    def test_success_key_ignores_download_info(self):
+        self.assertEqual(
+            diagnostic_key({"category": "ok", "summary": "info: downloading http<local-path>"}),
+            "ok | Lean 编译通过。",
+        )
+
     def test_manifest_schema_validation(self):
         manifest = {
             "schema_version": "leancapsule.v0.1",
