@@ -1,11 +1,12 @@
 # 当前工作进度
 
-更新时间：2026-08-26
+更新时间：2026-08-27
 
 补丁明细见 [CHANGELOG.md](CHANGELOG.md)；本文件只维护当前状态和剩余边界。
 
 ## 已完成
 
+- 补充 `docs/API_GUIDE.md`，统一 DeepSeek / OpenAI GPT、PowerShell / Git Bash、安全密钥输入、本地 HTTP 接口与排错步骤；同步 README、正式实验指南及共同作者贡献说明。当前内置 provider 仍仅发送 Chat Completions 请求，本次没有新增协议实现或调用付费 API。
 - 将 TRACER 的编译器封装扩展为可直接运行 Lean 文件的 `run_lean_file()`。
 - 新增 `leancapsule pack`，支持按定理名或行区间选择输入并生成完整文件 fallback capsule。
 - 新增 `leancapsule replay`，编译 `Capsule.lean` 并比较编译状态、诊断类别和规范化 `diagnostic_key`。

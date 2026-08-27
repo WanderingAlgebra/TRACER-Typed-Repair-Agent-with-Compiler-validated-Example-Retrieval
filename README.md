@@ -74,34 +74,23 @@ python src/agent.py solve `
 
 ## 直接输入 API 配置
 
+完整的 DeepSeek、OpenAI GPT、PowerShell / Git Bash 配置、环境变量、本地 HTTP 接口和排错步骤见 [模型 API 使用指南](docs/API_GUIDE.md)。当前内置 provider 使用 **Chat Completions**；不直接支持 Responses API，也不能把其他协议的 URL 原样替换进来。
+
 单次运行可以在命令行输入接口地址、模型，并通过安全提示输入密钥。输入时终端不会显示密钥；读取完成后只显示字符数和末四位，便于确认粘贴是否成功。完整密钥只存在于当前进程内，不写入日志和缓存：
 
-```powershell
-python src/agent.py solve `
-  --file input.lean `
-  --theorem Demo.target `
-  --condition B `
-  --provider openai_compatible `
-  --api-url "https://example.invalid/v1/chat/completions" `
-  --model "deepseek-v4-pro" `
-  --api-key-prompt
+DeepSeek 示例（下列单行命令同时适用于 PowerShell 与 Git Bash）：
+
+```text
+python src/agent.py solve --file lean_project/Benchmarks/Evaluation18.lean --theorem Eval18.and_swap_eval --condition B --provider openai_compatible --api-url "https://api.deepseek.com/chat/completions" --model deepseek-v4-pro --temperature 0 --max-tokens 12000 --api-key-prompt --max-rounds 3 --timeout 60
 ```
 
-DeepSeek 等提供 OpenAI 兼容聊天接口的服务也可以直接使用。例如：
+OpenAI GPT 示例（输入 OpenAI 官方 API 密钥，不是 DeepSeek 密钥）：
 
-```powershell
-python src/agent.py solve `
-  --file lean_project/Benchmarks/Evaluation18.lean `
-  --theorem Eval18.and_swap_eval `
-  --condition B `
-  --provider openai_compatible `
-  --api-url "https://api.deepseek.com/chat/completions" `
-  --model "deepseek-v4-pro" `
-  --temperature 0 `
-  --max-tokens 8000 `
-  --api-key-prompt `
-  --max-rounds 3
+```text
+python src/agent.py solve --file lean_project/Benchmarks/Evaluation18.lean --theorem Eval18.and_swap_eval --condition B --provider openai_compatible --api-url "https://api.openai.com/v1/chat/completions" --model gpt-4.1 --temperature 0 --max-tokens 4000 --api-key-prompt --max-rounds 3 --timeout 60
 ```
+
+DeepSeek Flash 可将模型改为 `deepseek-v4-flash`。GPT-4.1 是当前请求结构的兼容示例，并非最新模型推荐；GPT-5 等模型的参数不能直接照搬。示例预算不保证成功，也不构成等预算模型比较。DeepSeek 思考模式下温度参数不生效，详见指南中的官方依据。
 
 如果账户不支持该模型，再替换为接口返回的其他可用模型名称；不要保留占位符文字。模型即使返回 Markdown 的 `lean` 代码围栏，TRACER 也会先提取其中的局部证明，再交给 Lean 编译器；相同请求命中旧缓存时也会执行同样的清洗。
 
@@ -115,15 +104,22 @@ python src/agent.py solve `
 
 ### 正式 pilot、报告门禁与导出
 
-完整的 Windows 操作步骤见 [`docs/REAL_PILOT_GUIDE.md`](docs/REAL_PILOT_GUIDE.md)。
+完整的操作步骤见 [`docs/REAL_PILOT_GUIDE.md`](docs/REAL_PILOT_GUIDE.md)；不同模型的启动命令见 [API 指南](docs/API_GUIDE.md)。每个模型独立运行一批并导出，不混合不同模型的日志。
 
 先使用真实 provider 运行完整冻结集。`--fresh` 会把旧日志、证明、复核表和报告移入可恢复的 `results/archive/`；默认同时清空持久缓存。若明确使用 `--reuse-cache`，报告只能作为带警告的草稿。
 
 ```powershell
-python src/evaluate.py --provider openai_compatible --api-url "https://api.example/v1/chat/completions" --model "deepseek-v4-pro" --api-key-prompt --conditions A,B,C --fresh
+python src/evaluate.py --provider openai_compatible --api-url "https://api.deepseek.com/chat/completions" --model deepseek-v4-pro --temperature 0 --max-tokens 12000 --api-key-prompt --conditions A,B,C --max-rounds 3 --timeout 60 --fresh
+```
+
+完成这一批的人工复核后，再校验、生成报告与导出；下面 PowerShell 命令会在失败时停止。导出目录必须尚不存在：
+
+```powershell
 python scripts/validate_pilot.py --runs results/real_pilot_runs.jsonl --require-manual-review
+if ($LASTEXITCODE -ne 0) { throw "校验未通过，停止发布" }
 python src/report.py
-python scripts/export_pilot.py --out ..\TRACER-pilot-handoff
+if ($LASTEXITCODE -ne 0) { throw "报告生成失败，停止导出" }
+python scripts/export_pilot.py --out published/deepseek-v4-pro-12000-run01
 ```
 
 `validate_pilot.py` 检查 54 个题目×条件组合、连续轮次、统一 provider 配置、候选安全策略、基础设施错误和缓存命中；`report.py` 在门禁不通过时拒绝生成 formal 报告；`export_pilot.py` 只导出通过复核的轨迹、报告和成功 `.lean` 文件，并清理本机路径与认证信息。
@@ -136,20 +132,7 @@ python src/api_server.py --host 127.0.0.1 --port 8765
 
 向 `POST /solve` 发送 JSON，字段包括 `file`、`theorem`、`condition`、`api_url`、`api_key` 和 `model`。服务默认只监听本机，请勿直接暴露到公网。请求体不会写入服务日志。
 
-PowerShell 请求示例：
-
-```powershell
-$body = @{
-  file = "lean_project/Benchmarks/Evaluation18.lean"
-  theorem = "Eval18.and_swap_eval"
-  condition = "B"
-  api_url = "https://example.invalid/v1/chat/completions"
-  api_key = "在本地粘贴密钥"
-  model = "your-model"
-  max_rounds = 3
-} | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8765/solve -ContentType "application/json" -Body $body
-```
+安全输入密钥的完整 PowerShell 请求示例与 JSON 字段说明见 [API 指南](docs/API_GUIDE.md)。不要把密钥直接写进 `$body` 的命令文本，也不要打印请求体。
 
 ## 仓库结构
 
@@ -181,3 +164,5 @@ CHANGELOG.md            面向 GitHub 的补丁与版本变更记录
 ## 贡献
 
 请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [docs/CAPSULE_FORMAT.md](docs/CAPSULE_FORMAT.md)，为每个公开 capsule 补充来源、许可、预期诊断和回放结果。
+
+共同完成的修改请使用贡献指南中的 `Co-authored-by: Name <email>` 提交格式。PR 描述中的 `@mention` 仅是文字署名，不会替代 commit message 中的共同作者记录。
