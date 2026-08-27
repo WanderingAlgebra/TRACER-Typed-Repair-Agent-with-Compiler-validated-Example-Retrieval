@@ -1,0 +1,466 @@
+{
+  "pilot": "TRACER provider pilot",
+  "experiment_id": "pilot-20260826T122354Z-d628742d",
+  "provider_config": {
+    "provider": "openai_compatible",
+    "url": "https://api.deepseek.com/chat/completions",
+    "model": "deepseek-v4-pro",
+    "temperature": 0.0,
+    "max_tokens": 12000,
+    "input_price_per_1k": null,
+    "output_price_per_1k": null
+  },
+  "candidate_policy": {
+    "version": "tracer-candidate-v1",
+    "meta_execution": "blocked",
+    "environment": "minimal"
+  },
+  "tasks": 18,
+  "attempt_records": 56,
+  "cache_hits": 0,
+  "conditions": [
+    {
+      "condition": "A",
+      "tasks": 18,
+      "pass_at_1": 18,
+      "pass_at_1_rate": 1.0,
+      "pass_at_1_wilson_low": 0.8241,
+      "pass_at_1_wilson_high": 1.0,
+      "pass_at_3": 18,
+      "pass_at_3_rate": 1.0,
+      "pass_at_3_wilson_low": 0.8241,
+      "pass_at_3_wilson_high": 1.0,
+      "avg_rounds": 1.0,
+      "avg_compile_ms": 1416.5,
+      "avg_prompt_tokens": 200.3,
+      "avg_completion_tokens": 1550.1,
+      "avg_total_tokens": 1750.4,
+      "avg_cost_usd": null
+    },
+    {
+      "condition": "B",
+      "tasks": 18,
+      "pass_at_1": 16,
+      "pass_at_1_rate": 0.8889,
+      "pass_at_1_wilson_low": 0.672,
+      "pass_at_1_wilson_high": 0.969,
+      "pass_at_3": 18,
+      "pass_at_3_rate": 1.0,
+      "pass_at_3_wilson_low": 0.8241,
+      "pass_at_3_wilson_high": 1.0,
+      "avg_rounds": 1.111,
+      "avg_compile_ms": 1107.7,
+      "avg_prompt_tokens": 236.6,
+      "avg_completion_tokens": 1605.3,
+      "avg_total_tokens": 1841.9,
+      "avg_cost_usd": null
+    },
+    {
+      "condition": "C",
+      "tasks": 18,
+      "pass_at_1": 18,
+      "pass_at_1_rate": 1.0,
+      "pass_at_1_wilson_low": 0.8241,
+      "pass_at_1_wilson_high": 1.0,
+      "pass_at_3": 18,
+      "pass_at_3_rate": 1.0,
+      "pass_at_3_wilson_low": 0.8241,
+      "pass_at_3_wilson_high": 1.0,
+      "avg_rounds": 1.0,
+      "avg_compile_ms": 1065.3,
+      "avg_prompt_tokens": 387.6,
+      "avg_completion_tokens": 2518.4,
+      "avg_total_tokens": 2906.1,
+      "avg_cost_usd": null
+    }
+  ],
+  "failure_types": {},
+  "by_tag": [
+    {
+      "condition": "A",
+      "tag": "algebra",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "and",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "cases",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "equality",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "functions",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "inductive_types",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "introduction",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "natural_numbers",
+      "tasks": 8,
+      "pass_at_1": 8,
+      "pass_at_3": 8,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "negation",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "or",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "propositional_logic",
+      "tasks": 6,
+      "pass_at_1": 6,
+      "pass_at_3": 6,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "reduction",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "relations",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "A",
+      "tag": "rewriting",
+      "tasks": 4,
+      "pass_at_1": 4,
+      "pass_at_3": 4,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "algebra",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "and",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "cases",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "equality",
+      "tasks": 2,
+      "pass_at_1": 1,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 0.5,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "functions",
+      "tasks": 2,
+      "pass_at_1": 1,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 0.5,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "inductive_types",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "introduction",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "natural_numbers",
+      "tasks": 8,
+      "pass_at_1": 7,
+      "pass_at_3": 8,
+      "pass_at_1_rate": 0.875,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "negation",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "or",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "propositional_logic",
+      "tasks": 6,
+      "pass_at_1": 6,
+      "pass_at_3": 6,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "reduction",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "relations",
+      "tasks": 2,
+      "pass_at_1": 1,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 0.5,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "B",
+      "tag": "rewriting",
+      "tasks": 4,
+      "pass_at_1": 4,
+      "pass_at_3": 4,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "algebra",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "and",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "cases",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "equality",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "functions",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "inductive_types",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "introduction",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "natural_numbers",
+      "tasks": 8,
+      "pass_at_1": 8,
+      "pass_at_3": 8,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "negation",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "or",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "propositional_logic",
+      "tasks": 6,
+      "pass_at_1": 6,
+      "pass_at_3": 6,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "reduction",
+      "tasks": 1,
+      "pass_at_1": 1,
+      "pass_at_3": 1,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "relations",
+      "tasks": 2,
+      "pass_at_1": 2,
+      "pass_at_3": 2,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    },
+    {
+      "condition": "C",
+      "tag": "rewriting",
+      "tasks": 4,
+      "pass_at_1": 4,
+      "pass_at_3": 4,
+      "pass_at_1_rate": 1.0,
+      "pass_at_3_rate": 1.0
+    }
+  ],
+  "limitations": [
+    "题目数量小，区间只应作为 pilot evidence。",
+    "题目与本地示例存在结构相似性，不能据此排除训练泄漏。",
+    "模型随机性受 provider 配置和服务端 seed 支持影响。"
+  ],
+  "status": "formal",
+  "manual_review_complete": true,
+  "validation_warnings": []
+}
