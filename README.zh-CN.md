@@ -356,4 +356,8 @@ docs/                  使用说明与研究方法
 
 研究或教学中使用本项目时，请引用 [CITATION.cff](CITATION.cff)，并注明实际使用的版本和实验批次，便于他人追溯。这里提供的是软件引用，不宣称已有对应的同行评审论文或 DOI。
 
+### 致谢
+
+感谢 [SJTU AI4Math Summer School 2026](https://sjtu-ai4math.github.io/summer-school/2026/) 为人工智能与数学交叉领域的学习与交流提供平台。感谢组织者、授课教师及参与者共同营造开放、协作的研究氛围。
+
 本项目采用 [MIT License](LICENSE)。公开案例的来源与许可另见各自的 capsule 元数据。
