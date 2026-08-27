@@ -15,55 +15,60 @@ lake build
 
 如果 `python` 不在 PATH，可把下面所有 `python` 替换成已经安装依赖的 Python 解释器完整路径。
 
-## 2. 设置 provider 配置
+## 2. 选择模型与安全输入密钥
 
-当前实现使用 OpenAI 兼容的 Chat Completions 接口。以 DeepSeek 为例，地址和模型名必须按账户实际可用配置填写：
+当前实现使用 OpenAI 兼容的 Chat Completions 接口，不直接支持 Responses。完整模型与终端配置见 [API 使用指南](API_GUIDE.md)。先按该指南完成一题验证，再运行完整实验。
+
+DeepSeek 可选非敏感环境配置：
 
 ```powershell
 $env:LEAN_PROOF_API_URL = "https://api.deepseek.com/chat/completions"
 $env:LEAN_PROOF_MODEL = "deepseek-v4-pro"
 $env:LEAN_PROOF_TEMPERATURE = "0"
-$env:LEAN_PROOF_MAX_TOKENS = "8000"
+$env:LEAN_PROOF_MAX_TOKENS = "12000"
 ```
 
-不要把密钥写入 README、脚本、Git 历史或 JSONL。单次正式运行推荐使用 `--api-key-prompt`，这样无需把密钥放进 PowerShell 命令历史：
+使用 OpenAI GPT 时，同时切换端点、模型和预算，并在运行时输入 OpenAI 密钥：
 
 ```powershell
-$secure = Read-Host "API key（输入时不会回显）" -AsSecureString
-$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-try {
-  $env:LEAN_PROOF_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
-} finally {
-  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
-}
+$env:LEAN_PROOF_API_URL = "https://api.openai.com/v1/chat/completions"
+$env:LEAN_PROOF_MODEL = "gpt-4.1"
+$env:LEAN_PROOF_TEMPERATURE = "0"
+$env:LEAN_PROOF_MAX_TOKENS = "4000"
 ```
 
-可选地记录价格，未设置时报告会显示“未配置”，不会当作零成本：
+不要把密钥写入 README、脚本、Git 历史或 JSONL。使用 `--api-key-prompt` 后，在提示出现时粘贴密钥即可；不需要提前设置密钥环境变量。
+
+价格未知时保持未配置。若当前终端残留以前的费率，可清除：
 
 ```powershell
-$env:LEAN_PROOF_INPUT_PRICE_PER_1K = "0"
-$env:LEAN_PROOF_OUTPUT_PRICE_PER_1K = "0"
+Remove-Item Env:LEAN_PROOF_INPUT_PRICE_PER_1K -ErrorAction SilentlyContinue
+Remove-Item Env:LEAN_PROOF_OUTPUT_PRICE_PER_1K -ErrorAction SilentlyContinue
 ```
+
+只有掌握实际费率时才设置上述两项，单位是美元 / 1000 token；`0` 表示明确零价格，不能用来表示“未知”。报告金额是估算，不是账单。
 
 ## 3. 运行完整真实实验
 
 `--fresh` 会先把旧日志、证明、复核台账、报告和缓存移动到 `results/archive/`，然后开始新的实验批次。旧数据可恢复，不会被覆盖。
 
-```powershell
-python src/evaluate.py `
-  --provider openai_compatible `
-  --api-url "https://api.deepseek.com/chat/completions" `
-  --model "deepseek-v4-pro" `
-  --temperature 0 `
-  --max-tokens 8000 `
-  --api-key-prompt `
-  --conditions A,B,C `
-  --max-rounds 3 `
-  --timeout 60 `
-  --fresh
+下面二选一，单行命令适用于 PowerShell 与 Git Bash。示例显式参数优先于前面的环境变量。
+
+DeepSeek：
+
+```text
+python src/evaluate.py --provider openai_compatible --api-url https://api.deepseek.com/chat/completions --model deepseek-v4-pro --temperature 0 --max-tokens 12000 --api-key-prompt --conditions A,B,C --max-rounds 3 --timeout 60 --fresh
 ```
 
-带较长推理过程的模型建议至少使用 `8000`。如果日志中 `completion_tokens` 多次达到上限且候选为空，应提高上限并用 `--fresh` 重跑整批。
+OpenAI GPT：
+
+```text
+python src/evaluate.py --provider openai_compatible --api-url https://api.openai.com/v1/chat/completions --model gpt-4.1 --temperature 0 --max-tokens 4000 --api-key-prompt --conditions A,B,C --max-rounds 3 --timeout 60 --fresh
+```
+
+这些预算只是启动示例，不保证成功。若出现疑似截断，应结合服务响应与 usage 判断；决定改变预算后需用 `--fresh` 重跑整批，而不是只替换失败题。DeepSeek 思考模式下温度参数不生效，当前 provider 使用其默认思考配置，不能宣称温度为 0 就完全确定。
+
+比较多个模型时，先完成一个模型的第 4～7 步并导出，再运行另一个模型。同批 A/B/C 配置相同；跨模型对比必须提前约定预算和披露差异，禁止把不同模型的记录拼成一个正式报告。`--timeout` 是 Lean 编译预算，不是模型 API 网络超时。
 
 运行过程结束后应看到一个新的 `experiment_id`。如果出现 `provider_error`、大量 `task_error` 或中途断网，不要把这批结果当作正式实验；修复配置后重新使用 `--fresh` 完整运行。
 
@@ -100,8 +105,9 @@ python scripts/validate_pilot.py `
   --manifest benchmarks/manifest.json `
   --review results/manual_review.csv `
   --require-manual-review
-
+if ($LASTEXITCODE -ne 0) { throw "复核或轨迹校验未通过" }
 python src/report.py
+if ($LASTEXITCODE -ne 0) { throw "报告未生成，不可继续导出" }
 ```
 
 校验会拒绝：缺少 54 个组合、轮次不连续、成功后仍继续尝试、provider 配置不一致、基础设施错误、缓存命中或候选安全策略不一致。`report.py` 只有在门禁通过后才会生成 `formal` 报告；否则应先修正问题，不要使用 `--allow-*` 选项冒充正式结果。
@@ -120,19 +126,23 @@ python src/report.py
 只有严格校验和人工复核通过后才执行：
 
 ```powershell
-python scripts/export_pilot.py --out ..\TRACER-pilot-handoff
+python scripts/export_pilot.py --out published/deepseek-v4-pro-12000-run01
 ```
 
 导出包包含脱敏后的逐轮 JSONL、54 个组合的复核表、正式报告和成功 `.lean` 文件。导出前会拒绝疑似认证信息，并把本机绝对路径替换为占位路径。输出目录必须不存在，以防止误覆盖旧交付物。
+
+GPT 可使用另一个尚不存在的目录，例如 `published/gpt-4.1-4000-run01`。目录名只是便于阅读，实际批次以日志的 `experiment_id` 为准。需要公开交付时只暂存这次导出的指定目录；`results/archive/`、原始密钥、原始日志和 SQLite 不应强制加入提交。已有历史实验结果不能替代这次新模型实验。
 
 ## 8. 最终验收
 
 ```powershell
 python scripts/validate_pilot.py --require-manual-review
-python src/report.py
-python scripts/export_pilot.py --out ..\TRACER-pilot-handoff
+if ($LASTEXITCODE -ne 0) { throw "实验验收未通过" }
 python -m leancapsule audit capsules
+if ($LASTEXITCODE -ne 0) { throw "Capsule 审计未通过" }
 lake build
 ```
 
 最终交付前确认：`pilot_report.json` 的 `status` 为 `formal`，`cache_hits` 为 `0`，`experiment_id` 全程一致，并且导出包中存在每个成功记录对应的 `.lean` 文件。
+
+第 8 步不重复写入第 7 步已存在的导出目录。Git Bash 不使用 `$LASTEXITCODE`，可以用 `python scripts/validate_pilot.py --require-manual-review && python src/report.py` 在校验通过后生成报告，再按第 7 步导出。
