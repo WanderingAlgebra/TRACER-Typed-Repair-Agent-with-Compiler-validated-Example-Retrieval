@@ -1,11 +1,12 @@
 # 当前工作进度
 
-更新时间：2026-08-27
+更新时间：2026-08-28
 
 补丁明细见 [CHANGELOG.md](CHANGELOG.md)；本文件只维护当前状态和剩余边界。
 
 ## 已完成
 
+- 修复 Bash Mathlib 安装遇到临时网络错误就立即退出的问题：依赖同步与缓存下载有限重试，残缺传递依赖备份后重试，保留原始错误并在耗尽后失败；CI 设置 30 分钟安装步骤上限。同步中英文 README，未改 PowerShell 入口或依赖固定版本。
 - 新增中英文双版 README：默认首页 `README.md` 使用英文，`README.zh-CN.md` 保留完整中文，两版顶部相互链接；命令、实验数据和证据链接一致，许可说明同步为仓库现有 MIT License。
 - 重构 README 为研究工具首页：补充项目价值、可核查设计贡献、双入口架构图、适用场景、真实 pilot 结果及证据链接；明确无训练、失败回放与成功证明的区别，以及实验结论和许可边界。
 - 补充 `docs/API_GUIDE.md`，统一 DeepSeek / OpenAI GPT、PowerShell / Git Bash、安全密钥输入、本地 HTTP 接口与排错步骤；同步 README、正式实验指南及共同作者贡献说明。当前内置 provider 仍仅发送 Chat Completions 请求，本次没有新增协议实现或调用付费 API。
@@ -43,7 +44,8 @@
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试 62/62（本轮使用已安装依赖的 Anaconda Python 和显式 ELAN_HOME 复跑）：覆盖安全边界、真实反馈重试、实验批次隔离、双语文档导航与命令/数字一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、gallery、manifest、索引输出、路径清理、复核账本和 pilot 门禁检查。此前 `lake build` 通过，本次仅修改文档及文档测试，未单独重跑全量构建。
+- 完整 Python 测试共 75 项：73 项通过，2 项 Linux 符号链接边界检查在 Windows 跳过（使用 Anaconda Python 和显式 ELAN_HOME）。新增离线网络故障、有限重试、残缺包备份与 CI 安装预算回归检查；原有安全、编译、反馈、实验批次、双语文档、gallery 和 pilot 门禁检查通过。此前 `lake build` 通过，本次未单独重跑全量构建。
+- 本次网络故障测试使用命令替身，不等于已完成真实冷启动下载或远程 CI 验收；修复仍在本地，推送后需查看新的 Actions 结果。
 - 中英文 README 各 43 个本地链接、3 个页内锚点、13 个 PowerShell 兼容代码块和 2 个 Bash 代码块检查通过；公开实验工件链接通过 Git 中的已提交文件核验。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 

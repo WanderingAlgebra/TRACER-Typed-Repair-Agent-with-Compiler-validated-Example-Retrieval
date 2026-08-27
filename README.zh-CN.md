@@ -269,7 +269,9 @@ Linux/macOS：
 bash scripts/setup_mathlib.sh
 ```
 
-依赖和预编译缓存不纳入仓库；准备过程中网络中断时按脚本错误排查。Windows 的工具链目录应写为 `$env:ELAN_HOME = "$env:USERPROFILE\.elan"`，注意用户名目录与 `.elan` 之间的分隔符；需要本地代理时再配置 `HTTP_PROXY` / `HTTPS_PROXY`。
+依赖和预编译缓存不纳入仓库。Bash 安装脚本对依赖同步和缓存下载分别最多尝试三次，失败后依次等待 5 秒、10 秒；重试同步前，将没有有效 HEAD 的残缺 Git 包移入 `.lake/retry-backups/`，保留可恢复备份，不移动有效仓库、链接包或无 Git 的本地依赖。每次失败保留原始错误，重试耗尽仍使 CI 失败；CI 安装步骤设有 30 分钟总超时，不关闭证书校验。
+
+Bash 入口可通过 `TRACER_SETUP_ATTEMPTS`（1–5 次）和 `TRACER_SETUP_RETRY_DELAY`（初始 0–30 秒）调整重试；未显式配置 `MATHLIB_CACHE_DIR` 时，缓存位于项目的 `.lake/mathlib-cache`。这些重试配置不适用于 PowerShell 脚本。Windows 的工具链目录应写为 `$env:ELAN_HOME = "$env:USERPROFILE\.elan"`，注意用户名目录与 `.elan` 之间的分隔符；需要本地代理时再配置 `HTTP_PROXY` / `HTTPS_PROXY`。
 
 没有网络或尚未准备 Mathlib 依赖时，可先回放 Std 与 project-local 案例；这不等于 Mathlib 案例已经验收。回放默认超时为 180 秒。
 

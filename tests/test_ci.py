@@ -6,6 +6,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ContinuousIntegrationTest(unittest.TestCase):
+    def test_mathlib_setup_has_retry_and_timeout_without_ignoring_failure(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        setup_block = workflow.split("- name: Prepare Mathlib dependency project", 1)[1].split(
+            "- name: Replay public capsules", 1
+        )[0]
+        self.assertIn("timeout-minutes: 30", setup_block)
+        self.assertIn('TRACER_SETUP_ATTEMPTS: "3"', setup_block)
+        self.assertNotIn("continue-on-error", setup_block)
+        self.assertNotIn("|| true", setup_block)
+
     def test_lean_is_installed_before_end_to_end_tests(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         self.assertLess(workflow.index("- name: Install Lean"), workflow.index("- name: Run tests"))
