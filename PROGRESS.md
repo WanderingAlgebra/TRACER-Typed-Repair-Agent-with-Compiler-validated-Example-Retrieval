@@ -6,6 +6,7 @@
 
 ## 已完成
 
+- 重构 README 为研究工具首页：补充项目价值、可核查设计贡献、双入口架构图、适用场景、真实 pilot 结果及证据链接；明确无训练、失败回放与成功证明的区别，以及实验结论和许可边界。
 - 补充 `docs/API_GUIDE.md`，统一 DeepSeek / OpenAI GPT、PowerShell / Git Bash、安全密钥输入、本地 HTTP 接口与排错步骤；同步 README、正式实验指南及共同作者贡献说明。当前内置 provider 仍仅发送 Chat Completions 请求，本次没有新增协议实现或调用付费 API。
 - 将 TRACER 的编译器封装扩展为可直接运行 Lean 文件的 `run_lean_file()`。
 - 新增 `leancapsule pack`，支持按定理名或行区间选择输入并生成完整文件 fallback capsule。
@@ -41,7 +42,7 @@
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试 56/56：覆盖安全边界、真实反馈重试、实验批次隔离、文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、gallery、manifest、索引输出、路径清理、复核账本和 pilot 门禁检查；`lake build` 通过。
+- 完整 Python 测试 58/58（本轮使用已安装依赖的 Anaconda Python 复跑）：覆盖安全边界、真实反馈重试、实验批次隔离、文档一致性、模型 Markdown 围栏清洗、provider 错误正文、外部文件显式工具链、CI 安装/构建/测试顺序、gallery、manifest、索引输出、路径清理、复核账本和 pilot 门禁检查；`lake build` 通过。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
 
 ## 明确边界
