@@ -140,7 +140,7 @@ python src/agent.py solve --file lean_project/Benchmarks/Evaluation18.lean --the
 
 完整配置见 [模型 API 使用指南](docs/API_GUIDE.md)：包括 DeepSeek V4 Pro/Flash、OpenAI GPT、环境变量、PowerShell / Git Bash、本地 HTTP 接口及常见错误。
 
-当前内置 `openai_compatible` provider 使用 **Chat Completions**，不直接支持 Responses API。模型名、接口地址和密钥需要来自同一服务；不能只改一个 URL 就假定所有协议都兼容。
+当前内置 `openai_compatible` provider 同时支持 **Chat Completions** 与 **Responses API**。使用 `--wire-api responses` 选择 Responses，并显式设置推理强度和响应存储策略；模型名、接口地址和密钥仍需来自同一服务。
 
 ### DeepSeek
 
@@ -185,6 +185,10 @@ DeepSeek Flash 可将模型改为 `deepseek-v4-flash`。GPT-4.1 是当前请求�
 三组保持模型、输出预算、编译器、超时、题目顺序和最多三轮等设置一致，只改变提示上下文。A 也可以进行多轮生成，但不读取上一轮诊断；B/C 的第一轮尚无真实的上一轮反馈。
 
 评测不依赖运行时答案表。检索会检查与评测题声明相同的示例；相似但不相同的命题仍需人工复核，**文本去重不等于消除了所有语义泄漏风险**。这里的 `pass@3` 指三轮预算内至少一次成功的题目比例，不是多次独立采样得到的无偏 pass@k 估计。方法详见 [实验协议](docs/methodology.md)。
+
+### AxProverBase Part 1 + Part 2 配对实验
+
+另一组 FATE-M 实验比较 Part 1 的 AxProverBase `ExperienceProcessor` baseline 与 Part 2 的 `MemorylessProcessor + CapsuleFeedback`。两组在 25 题上逐题复用相同首轮候选，并冻结 `gpt-5.6-sol`、AI4Math `yxai` Responses endpoint、预算和候选安全策略。两组均为 25/25 成功；总轮次由 39 降至 34，编译错误由 14 降至 9，LLM 调用由 79 降至 34，token 由 656,657 降至 250,030；Capsule 处理本身没有额外 LLM 或编译调用。详见 [Part 2 设计](docs/part2_capsule_feedback.md)与[正式结果交接包](results/handoff/part12-live-20260828/README.md)。
 
 ## 实验结果
 
@@ -308,7 +312,7 @@ python -m leancapsule gallery capsules --out capsules/index.json
 ## 安全与能力边界
 
 - **不是操作系统沙箱。** 临时 HOME/TMP/APPDATA、最小环境变量和候选策略只提供防护层。运行不受信任的项目或 Lean 代码，应使用容器、虚拟机或独立低权限环境。
-- **限制局部修复。** Agent 不应改写题目 imports 或定理头；候选中的 `sorry`、`admit`、`sorryAx`、未完成证明警告和部分显式本机执行构造会被拒绝。不承诺任意 Lean 元编程构造都能由文本规则识别。
+- **限制局部修复。** Agent 不应改写题目 imports 或定理头；候选中的 `sorry`、`admit`、`sorryAx`、未完成证明警告、unsafe 声明和部分显式本机执行构造会被拒绝。D01 验证通过 `unsafe inductive` 构造 `False` 的候选会在 Agent、AxProverBase、Capsule pack、replay 和 audit 编译前被拒绝；它是安全回归，不是 A/B/C 的第四种条件。不承诺任意 Lean 元编程构造都能由文本规则识别。
 - **凭据与发布分离。** Provider 限制跨来源重定向并对错误文本脱敏；密钥不作为实验记录字段写入。发布前仍应检查导出内容，并只向可信 provider 发送密钥。
 - **透明的比较与缓存。** 诊断比较和请求缓存使用可读的规范化文本，不引入摘要或指纹计算；缓存用于本地调试复用，不充当独立真实采样。
 - **抽取不是全局最小化。** 完整文件 fallback 与显式本地文件清单不等于任意多文件项目的程序切片；诊断一致也不保证保留所有上下文语义。
@@ -323,6 +327,8 @@ python -m leancapsule gallery capsules --out capsules/index.json
 | 理解条件控制和有效性约束 | [方法设计](docs/methodology.md) |
 | 查阅逐轮记录字段 | [JSONL 格式](docs/jsonl_schema.md) |
 | 创建可公开分享的失败工件 | [工件格式](docs/CAPSULE_FORMAT.md)与[案例贡献指南](docs/CONTRIBUTING_CAPSULES.md) |
+| 运行或检查 AxProverBase Part 1 + Part 2 实验 | [Part 1 指南](baseline/README.md)、[Part 2 设计](docs/part2_capsule_feedback.md)与[结果交接包](results/handoff/part12-live-20260828/README.md) |
+| 查看 D01 编译前安全门禁 | [D 类安全回归](docs/security_type_d.md) |
 | 查看已发布实验与证明 | [Pilot 交付目录](published/pilot-20260826T122354Z-d628742d) |
 | 查看当前状态与历史改动 | [PROGRESS](PROGRESS.md)与[CHANGELOG](CHANGELOG.md) |
 
@@ -340,6 +346,8 @@ lean_project/          Lean 题目与本地依赖案例
 mathlib_project/       独立 Mathlib 依赖工程
 prompts/               A/B/C 提示模板
 scripts/               依赖准备、测试、pilot 校验与导出
+baseline/              AxProverBase Part 1 与配对 Part 2 实验 runner
+configs/               冻结的 AxProverBase 模型与 memory 配置
 tests/                 自动化测试
 results/               本地运行数据与报告
 published/             经复核、脱敏的实验交付

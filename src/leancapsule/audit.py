@@ -7,6 +7,8 @@ import json
 import re
 from pathlib import Path
 
+from compiler import source_meta_execution_violation
+
 from .schema import validate_json_schema, validate_manifest
 
 
@@ -74,8 +76,13 @@ def audit_directory(root: Path) -> dict:
         license_name = manifest.get("provenance", {}).get("license")
         if not isinstance(license_name, str) or not license_name.strip() or license_name == "未声明":
             errors.append(f"{capsule.name}: 发布案例必须声明许可")
-        if manifest.get("expected", {}).get("compile_ok"):
-            source = (capsule / manifest.get("replay", {}).get("file", "Capsule.lean")).read_text(encoding="utf-8")
+        replay_source = capsule / manifest.get("replay", {}).get("file", "Capsule.lean")
+        if not replay_source.is_file():
+            errors.append(f"{capsule.name}: 回放源文件不存在")
+        elif source_meta_execution_violation(replay_source.read_text(encoding="utf-8")):
+            errors.append(f"{capsule.name}: 回放源包含不允许的不安全声明或编译期执行入口")
+        elif manifest.get("expected", {}).get("compile_ok"):
+            source = replay_source.read_text(encoding="utf-8")
             if PLACEHOLDER.search(source):
                 errors.append(f"{capsule.name}: 成功案例含未完成证明占位符")
 

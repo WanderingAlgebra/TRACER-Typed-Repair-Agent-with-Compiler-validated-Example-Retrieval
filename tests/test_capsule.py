@@ -102,3 +102,35 @@ class CapsuleTest(unittest.TestCase):
             with patch("leancapsule.replay.run_lean_file", return_value=fake):
                 result = replay_capsule(capsule)
             self.assertTrue(result["ok"])
+
+    def test_pack_and_replay_reject_type_d_before_compilation(self):
+        unsafe_source = (ROOT / "benchmarks" / "security" / "unsafe_inductive_false.lean").read_text(
+            encoding="utf-8"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            source = base / "Unsafe.lean"
+            source.write_text(unsafe_source, encoding="utf-8")
+            with patch("leancapsule.pack.run_lean_file") as compile_mock:
+                with self.assertRaisesRegex(ValueError, "不安全声明|编译期执行入口"):
+                    pack_capsule(base, source, base / "capsule", lines="1:1")
+            compile_mock.assert_not_called()
+
+            capsule = base / "replay-capsule"
+            capsule.mkdir()
+            manifest = {
+                "schema_version": "leancapsule.v0.1",
+                "capsule_id": "unsafe-demo",
+                "target": {"source_file": "Unsafe.lean", "selection_mode": "lines", "lines": "1:1"},
+                "environment": {},
+                "expected": {"compile_ok": False, "category": "compile_error", "diagnostic_key": "x"},
+                "provenance": {"license": "MIT"},
+                "replay": {"file": "Capsule.lean"},
+            }
+            (capsule / "capsule.json").write_text(json.dumps(manifest), encoding="utf-8")
+            (capsule / "Capsule.lean").write_text(unsafe_source, encoding="utf-8")
+            with patch("leancapsule.replay.run_lean_file") as compile_mock:
+                result = replay_capsule(capsule)
+            compile_mock.assert_not_called()
+            self.assertFalse(result["ok"])
+            self.assertRegex(result["error"], "不安全声明|编译期执行入口")

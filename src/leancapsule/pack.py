@@ -8,7 +8,7 @@ import re
 import shutil
 from pathlib import Path
 
-from compiler import declaration_scope, find_project_root, run_lean_file
+from compiler import declaration_scope, find_project_root, run_lean_file, source_meta_execution_violation
 from diagnostics import normalize_diagnostics
 
 from .diagnostics_key import diagnostic_key
@@ -134,6 +134,8 @@ def pack_capsule(
     if bool(theorem) == bool(lines):
         raise ValueError("必须且只能指定 --theorem 或 --lines")
     source = source_file.read_text(encoding="utf-8")
+    if source_meta_execution_violation(source):
+        raise ValueError("源文件包含不允许进入公开 Capsule 的不安全声明或编译期执行入口")
     if theorem:
         declaration_scope(source, theorem)
         selection_mode = "theorem"
