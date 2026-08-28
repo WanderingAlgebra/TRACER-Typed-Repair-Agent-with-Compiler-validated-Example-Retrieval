@@ -6,7 +6,7 @@ Part 2 的代码实现与验证基础设施已经完成。当前版本能够把 
 
 本阶段还完成了逐 theorem 状态隔离、状态大小控制、AI4Math `yxai`/`gpt-5.6-sol`/Memoryless 配置冻结、共享首轮候选注入、配对实验门禁、调用与 token 遥测，以及固定 AxProverBase commit 的真实类型验证。
 
-FATE-M 25 题真实配对实验已经完成：Part 1 与 Part 2 均为 25/25 成功，严格配对门禁 25/25 通过。总轮次由 39 降至 34，编译错误由 14 降至 9，LLM calls 由 79 降至 34，tokens 由 656657 降至 250030；正式交接包位于 `results/handoff/part12-live-20260828/`。
+FATE-M 25 题真实配对实验已经完成：Part 1 与 Part 2 均为 25/25 成功，严格配对门禁 25/25 通过。修正版总轮次由 39 降至 36，编译错误由 14 降至 11，LLM calls 由 79 降至 36，tokens 由 656657 降至 274742；正式交接包位于 `results/handoff/part12-live-20260828-corrected/`。
 
 ## 2. 冻结实验条件
 

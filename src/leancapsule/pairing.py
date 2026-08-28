@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -14,6 +15,7 @@ except ModuleNotFoundError as exc:
     from src.compiler import CANDIDATE_POLICY
 
 from .feedback import (
+    AXPROVERBASE_COMMIT,
     AXPROVER_YXAI_MODEL,
     YXAI_BASE_URL,
     YXAI_REASONING_EFFORT,
@@ -24,6 +26,17 @@ from .feedback import (
 
 def candidate_digest(candidate: object) -> str:
     return hashlib.sha256(str(candidate or "").encode("utf-8")).hexdigest()
+
+
+def proposal_digest(row: Mapping[str, Any]) -> str:
+    payload = {
+        "code": row.get("first_round_candidate"),
+        "reasoning": row.get("first_round_reasoning"),
+        "imports": row.get("first_round_imports"),
+        "opens": row.get("first_round_opens"),
+    }
+    serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def _task_id(row: Mapping[str, Any]) -> str:
@@ -87,6 +100,43 @@ def validate_paired_runs(
     for task_id in sorted(baseline_ids & capsule_ids):
         left = baseline[task_id]
         right = capsule[task_id]
+        left_condition = str(left.get("condition") or "")
+        right_condition = str(right.get("condition") or "")
+        if left_condition not in {"baseline", "experience"}:
+            errors.append(f"{task_id}: baseline condition must be baseline/experience")
+        if right_condition != "capsule":
+            errors.append(f"{task_id}: capsule condition must be capsule")
+
+        for field in ("target", "module", "theorem", "path"):
+            left_value = str(left.get(field) or "")
+            right_value = str(right.get(field) or "")
+            if not left_value or not right_value:
+                errors.append(f"{task_id}: paired {field} is missing")
+            elif left_value != right_value:
+                errors.append(f"{task_id}: paired {field} mismatch")
+        left_target = str(left.get("target") or "")
+        right_target = str(right.get("target") or "")
+        left_expected_target = f"{left.get('module', '')}:{left.get('theorem', '')}"
+        right_expected_target = f"{right.get('module', '')}:{right.get('theorem', '')}"
+        if left_target and left_target != left_expected_target:
+            errors.append(f"{task_id}: baseline target does not match module/theorem")
+        if right_target and right_target != right_expected_target:
+            errors.append(f"{task_id}: capsule target does not match module/theorem")
+
+        left_ax_commit = str(left.get("axproverbase_commit") or "")
+        right_ax_commit = str(right.get("axproverbase_commit") or "")
+        if left_ax_commit != AXPROVERBASE_COMMIT or right_ax_commit != left_ax_commit:
+            errors.append(
+                f"{task_id}: both conditions must use AxProverBase {AXPROVERBASE_COMMIT}"
+            )
+
+        if str(left.get("memory_mode") or "") != "self_managed":
+            errors.append(f"{task_id}: baseline memory_mode must be self_managed")
+        if str(right.get("memory_mode") or "") != "capsule_feedback":
+            errors.append(f"{task_id}: capsule memory_mode must be capsule_feedback")
+        if str(right.get("memory_processor") or "") != "MemorylessProcessor":
+            errors.append(f"{task_id}: capsule memory_processor must be MemorylessProcessor")
+
         left_candidate = str(left.get("first_round_candidate") or "")
         right_candidate = str(right.get("first_round_candidate") or "")
         digest = candidate_digest(left_candidate)
@@ -94,6 +144,23 @@ def validate_paired_runs(
             errors.append(f"{task_id}: first_round_candidate is empty")
         elif left_candidate != right_candidate:
             errors.append(f"{task_id}: first_round_candidate mismatch")
+
+        for field in ("first_round_reasoning", "first_round_imports", "first_round_opens"):
+            left_value = left.get(field)
+            right_value = right.get(field)
+            if field == "first_round_reasoning":
+                valid = isinstance(left_value, str) and isinstance(right_value, str)
+            else:
+                valid = (
+                    isinstance(left_value, list)
+                    and isinstance(right_value, list)
+                    and all(isinstance(item, str) for item in left_value)
+                    and all(isinstance(item, str) for item in right_value)
+                )
+            if not valid:
+                errors.append(f"{task_id}: paired {field} has an invalid type")
+            elif left_value != right_value:
+                errors.append(f"{task_id}: {field} mismatch")
 
         left_model = str(left.get("model") or "")
         right_model = str(right.get("model") or "")
@@ -161,6 +228,9 @@ def validate_paired_runs(
             {
                 "task_id": task_id,
                 "candidate_sha256": digest,
+                "proposal_sha256": proposal_digest(left),
+                "target": left_target,
+                "axproverbase_commit": left_ax_commit,
                 "model": left_model,
                 "base_url": left_url,
                 "wire_api": left_wire_api,
@@ -177,6 +247,7 @@ def validate_paired_runs(
         "ok": not errors,
         "pair_count": len(pairs),
         "expected_model": AXPROVER_YXAI_MODEL,
+        "expected_axproverbase_commit": AXPROVERBASE_COMMIT,
         "expected_base_url": YXAI_BASE_URL,
         "expected_wire_api": YXAI_WIRE_API,
         "expected_store": YXAI_STORE_RESPONSES,
@@ -187,4 +258,4 @@ def validate_paired_runs(
     }
 
 
-__all__ = ["candidate_digest", "validate_paired_runs"]
+__all__ = ["candidate_digest", "proposal_digest", "validate_paired_runs"]

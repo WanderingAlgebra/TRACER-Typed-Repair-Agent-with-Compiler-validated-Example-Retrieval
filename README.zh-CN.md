@@ -188,7 +188,7 @@ DeepSeek Flash 可将模型改为 `deepseek-v4-flash`。GPT-4.1 是当前请求�
 
 ### AxProverBase Part 1 + Part 2 配对实验
 
-另一组 FATE-M 实验比较 Part 1 的 AxProverBase `ExperienceProcessor` baseline 与 Part 2 的 `MemorylessProcessor + CapsuleFeedback`。两组在 25 题上逐题复用相同首轮候选，并冻结 `gpt-5.6-sol`、AI4Math `yxai` Responses endpoint、预算和候选安全策略。两组均为 25/25 成功；总轮次由 39 降至 34，编译错误由 14 降至 9，LLM 调用由 79 降至 34，token 由 656,657 降至 250,030；Capsule 处理本身没有额外 LLM 或编译调用。详见 [Part 2 设计](docs/part2_capsule_feedback.md)与[正式结果交接包](results/handoff/part12-live-20260828/README.md)。
+另一组 FATE-M 实验比较 Part 1 的 AxProverBase `ExperienceProcessor` baseline 与 Part 2 的 `MemorylessProcessor + CapsuleFeedback`。两组在 25 题上逐题复用相同首轮候选，并冻结 `gpt-5.6-sol`、AI4Math `yxai` Responses endpoint、预算和候选安全策略。两组均为 25/25 成功；总轮次由 39 降至 36，编译错误由 14 降至 11，LLM 调用由 79 降至 36，token 由 656,657 降至 274,742；Capsule 处理本身没有额外 LLM 或编译调用。详见 [Part 2 设计](docs/part2_capsule_feedback.md)与[正式结果交接包](results/handoff/part12-live-20260828-corrected/README.md)。
 
 ## 实验结果
 
@@ -327,7 +327,7 @@ python -m leancapsule gallery capsules --out capsules/index.json
 | 理解条件控制和有效性约束 | [方法设计](docs/methodology.md) |
 | 查阅逐轮记录字段 | [JSONL 格式](docs/jsonl_schema.md) |
 | 创建可公开分享的失败工件 | [工件格式](docs/CAPSULE_FORMAT.md)与[案例贡献指南](docs/CONTRIBUTING_CAPSULES.md) |
-| 运行或检查 AxProverBase Part 1 + Part 2 实验 | [Part 1 指南](baseline/README.md)、[Part 2 设计](docs/part2_capsule_feedback.md)与[结果交接包](results/handoff/part12-live-20260828/README.md) |
+| 运行或检查 AxProverBase Part 1 + Part 2 实验 | [Part 1 指南](baseline/README.md)、[Part 2 设计](docs/part2_capsule_feedback.md)与[结果交接包](results/handoff/part12-live-20260828-corrected/README.md) |
 | 查看 D01 编译前安全门禁 | [D 类安全回归](docs/security_type_d.md) |
 | 查看已发布实验与证明 | [Pilot 交付目录](published/pilot-20260826T122354Z-d628742d) |
 | 查看当前状态与历史改动 | [PROGRESS](PROGRESS.md)与[CHANGELOG](CHANGELOG.md) |

@@ -49,7 +49,7 @@ Memory 把失败经验压缩成“实验笔记”
 
 待 Capsule 保真度和案例集优化完成后，将其封装为轻量 `CapsuleFeedback`：直接消费 Ax 已有的编译结果，不重复编译，只输出错误类别、规范化诊断文本、重复次数、诊断变化和紧凑历史，供下一轮 Proposer 使用；重复判断直接比较规范化诊断文本。
 
-当前状态：Part 1 runner、Part 2 核心与真实 Ax 包裹入口、逐 theorem 状态、Memoryless/`yxai` Responses 配置、遥测和严格配对门禁均已实现。FATE-M 25 题配对实验已完成，正式交接结果位于 `results/handoff/part12-live-20260828/`。
+当前状态：Part 1 runner、Part 2 核心与真实 Ax 包裹入口、逐 theorem 状态、Memoryless/`yxai` Responses 配置、遥测和严格配对门禁均已实现。FATE-M 25 题配对实验已完成，修正版正式交接结果位于 `results/handoff/part12-live-20260828-corrected/`。
 
 ### Part 3：修改后 Agent 测试
 

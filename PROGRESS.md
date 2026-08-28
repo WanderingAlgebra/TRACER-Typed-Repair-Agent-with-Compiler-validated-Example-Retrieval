@@ -39,7 +39,7 @@
 - 吸收 leiteng 分支的临时 HOME/TMP/APPDATA 隔离、候选安全策略、严格 pilot 校验、正式报告门禁和脱敏导出流程；导出清单只记录相对路径与文件大小，不执行摘要计算。
 - `results/solutions/` 会按条件保存每个成功候选，`results/real_pilot_runs.jsonl` 保存逐轮原始轨迹；`evaluate.py --fresh` 会先归档旧实验，避免不同批次混合。
 - 已合入 AxProverBase Part 1 Experience baseline 与 Part 2 `MemorylessProcessor + CapsuleFeedback`：冻结 Ax commit、`yxai` Responses 模型条件、预算、首轮候选和逐题遥测；Part 2 直接消费已有 Builder 结果，不重复调用 Lean 或模型。
-- 已完成 FATE-M 25 题正式配对实验：两组均 25/25 成功，严格配对 25/25 通过；总轮次 39→34、编译错误 14→9、LLM calls 79→34、tokens 656657→250030，正式结果与 SHA-256 清单位于 `results/handoff/part12-live-20260828/`。
+- 已完成 FATE-M 25 题正式配对实验：两组均 25/25 成功，严格配对 25/25 通过；修正版总轮次 39→36、编译错误 14→11、LLM calls 79→36、tokens 656657→274742，正式结果与 SHA-256 清单位于 `results/handoff/part12-live-20260828-corrected/`；旧目录保留为历史工件。
 - 新增独立 D01 安全回归：`unsafe inductive` 构造 `False` 的候选在 Agent、AxProverBase 缓存/Proposal/Builder、Capsule pack/replay/audit 的 Lean 编译前拒绝；D 类不是 A/B/C 的第四个实验条件。
 
 ## 当前验证状态
@@ -47,7 +47,7 @@
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试共 124 项：122 项通过，2 项 Linux 符号链接边界检查在 Windows 跳过。Part 1/2 配置、CapsuleFeedback、Ax 接入、D01 编译前门禁、双语文档、gallery、provider 和 pilot 门禁均通过；`lake build` 将在本次合并分支上再次验证。
+- 完整 Python 测试共 129 项：127 项通过，2 项 Linux 符号链接边界检查在 Windows 跳过。Part 1/2 配置、完整 Proposal 配对、重跑状态隔离、CapsuleFeedback、Ax 接入、D01 编译前门禁、双语文档、gallery、provider 和 pilot 门禁均通过；PR 的 Ubuntu `lake build` 与完整 Python 回归已通过。
 - 本次网络故障测试使用命令替身，不等于已完成真实冷启动下载或远程 CI 验收；修复仍在本地，推送后需查看新的 Actions 结果。
 - 中英文 README 各 43 个本地链接、3 个页内锚点、13 个 PowerShell 兼容代码块和 2 个 Bash 代码块检查通过；公开实验工件链接通过 Git 中的已提交文件核验。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。

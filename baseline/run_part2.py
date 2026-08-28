@@ -11,6 +11,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 import uuid
@@ -39,6 +40,9 @@ from leancapsule.feedback import (  # noqa: E402
     YXAI_STORE_RESPONSES,
     YXAI_WIRE_API,
 )
+
+
+_CAPSULE_STATE_FILE_RE = re.compile(r"^[0-9a-f]{24}\.json(?:\.tmp)?$")
 
 
 def _read(value: object, name: str, default: object = None) -> object:
@@ -146,7 +150,9 @@ def extract_record(
     location = _read(state_item, "location")
     theorem = str(metadata.get("theorem") or _read(location, "name", ""))
     module = str(metadata.get("module") or "")
-    is_proven = bool(_read(state_item, "is_proven", _read(state, "approved", False)))
+    # FATE-M source declarations already contain reference proofs, so
+    # TargetItem.is_proven starts true even when this Agent run fails.
+    is_proven = bool(_read(state, "approved", False))
     rounds = int(_read(state, "iteration_count", len(proposals)) or len(proposals))
 
     node_calls = dict(getattr(prover, "_capsule_node_counts", {}) or {})
@@ -290,18 +296,111 @@ def validate_inputs(
     for row_no, row in enumerate(rows, start=1):
         task_id = str(row.get("task_id") or "")
         target = str(row.get("target") or "")
+        module = str(row.get("module") or "")
+        theorem = str(row.get("theorem") or "")
         candidate = str(row.get("first_round_candidate") or "")
-        if not task_id or not target or not candidate.strip():
+        reasoning = row.get("first_round_reasoning")
+        imports = row.get("first_round_imports")
+        opens = row.get("first_round_opens")
+        if not task_id or not target or not module or not theorem or not candidate.strip():
             raise ValueError(
-                f"baseline row {row_no} requires task_id, target, and first_round_candidate"
+                f"baseline row {row_no} requires task_id, target, module, theorem, "
+                "and first_round_candidate"
+            )
+        if target != f"{module}:{theorem}":
+            raise ValueError(f"baseline row {row_no} target does not match module/theorem")
+        if not isinstance(reasoning, str):
+            raise ValueError(f"baseline row {row_no} first_round_reasoning must be a string")
+        if isinstance(imports, str) or not isinstance(imports, list):
+            raise ValueError(f"baseline row {row_no} first_round_imports must be a list")
+        if isinstance(opens, str) or not isinstance(opens, list):
+            raise ValueError(f"baseline row {row_no} first_round_opens must be a list")
+        if not all(isinstance(item, str) for item in imports):
+            raise ValueError(
+                f"baseline row {row_no} first_round_imports entries must be strings"
+            )
+        if not all(isinstance(item, str) for item in opens):
+            raise ValueError(
+                f"baseline row {row_no} first_round_opens entries must be strings"
             )
         if task_id in seen:
             raise ValueError(f"duplicate baseline task_id: {task_id}")
         seen.add(task_id)
         cached = cache.get(target)
         if cached["code"] != candidate:
-            raise ValueError(f"first-round candidate cache mismatch for {target}")
+            raise ValueError(f"first-round code cache mismatch for {target}")
+        if cached["reasoning"] != reasoning:
+            raise ValueError(f"first-round reasoning cache mismatch for {target}")
+        if cached["imports"] != imports:
+            raise ValueError(f"first-round imports cache mismatch for {target}")
+        if cached["opens"] != opens:
+            raise ValueError(f"first-round opens cache mismatch for {target}")
     return rows
+
+
+def prepare_run_artifacts(
+    output_path: Path,
+    *,
+    state_dir: Path | None,
+    metrics_path: Path | None,
+    overwrite: bool,
+    protected_paths: tuple[Path, ...] = (),
+) -> None:
+    """Require a fresh formal run, or safely reset only known Part 2 artifacts."""
+
+    output_resolved = output_path.resolve()
+    metrics_resolved = metrics_path.resolve() if metrics_path is not None else None
+    protected = {path.resolve() for path in protected_paths}
+    if output_resolved in protected:
+        raise ValueError("Part 2 output path overlaps a protected input file")
+    if metrics_resolved is not None:
+        if metrics_resolved == output_resolved:
+            raise ValueError("CAPSULE_FEEDBACK_METRICS must differ from the Part 2 output")
+        if metrics_resolved in protected:
+            raise ValueError("CAPSULE_FEEDBACK_METRICS overlaps a protected input file")
+
+    state_entries: list[Path] = []
+    if state_dir is not None and state_dir.exists():
+        if not state_dir.is_dir():
+            raise ValueError("CAPSULE_FEEDBACK_STATE_DIR must be a directory")
+        state_entries = list(state_dir.iterdir())
+        unexpected = [entry for entry in state_entries if not (
+            entry.is_file() and _CAPSULE_STATE_FILE_RE.fullmatch(entry.name)
+        )]
+        if unexpected:
+            names = ", ".join(sorted(entry.name for entry in unexpected)[:5])
+            raise ValueError(
+                "CAPSULE_FEEDBACK_STATE_DIR must be a dedicated state directory; "
+                f"unexpected entries: {names}"
+            )
+
+    existing: list[str] = []
+    if output_path.exists() and output_path.stat().st_size:
+        existing.append(str(output_path))
+    if metrics_path is not None and metrics_path.exists() and metrics_path.stat().st_size:
+        existing.append(str(metrics_path))
+    if state_entries:
+        existing.append(f"{state_dir} ({len(state_entries)} state files)")
+    if existing and not overwrite:
+        raise ValueError(
+            "existing Part 2 artifacts would contaminate a fresh run: "
+            + "; ".join(existing)
+            + "; choose fresh paths or pass --overwrite"
+        )
+
+    if overwrite:
+        if output_path.exists():
+            output_path.write_text("", encoding="utf-8")
+        if metrics_path is not None and metrics_path.exists():
+            metrics_path.write_text("", encoding="utf-8")
+        for state_path in state_entries:
+            state_path.unlink()
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if metrics_path is not None:
+        metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    if state_dir is not None:
+        state_dir.mkdir(parents=True, exist_ok=True)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -332,17 +431,20 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Part 2 preflight failed: {exc}", file=sys.stderr)
         return 2
 
-    if args.out.exists() and args.out.stat().st_size:
-        if not args.overwrite:
-            print(
-                f"Part 2 preflight failed: output is not empty: {args.out}; "
-                "choose a new path or pass --overwrite",
-                file=sys.stderr,
-            )
-            return 2
-        args.out.write_text("", encoding="utf-8")
+    state_value = os.environ.get("CAPSULE_FEEDBACK_STATE_DIR", "")
+    metrics_value = os.environ.get("CAPSULE_FEEDBACK_METRICS", "")
+    try:
+        prepare_run_artifacts(
+            args.out,
+            state_dir=Path(state_value) if state_value else None,
+            metrics_path=Path(metrics_value) if metrics_value else None,
+            overwrite=args.overwrite,
+            protected_paths=(args.baseline, Path(cache_value)),
+        )
+    except (OSError, ValueError) as exc:
+        print(f"Part 2 preflight failed: {exc}", file=sys.stderr)
+        return 2
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
     failures = 0
     with args.out.open("a", encoding="utf-8", newline="\n") as stream:
         for index, row in enumerate(rows, start=1):

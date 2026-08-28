@@ -303,17 +303,24 @@ class FirstRoundCandidateCache:
             raise ValueError(f"empty first-round candidate for {theorem_key!r}")
         if len(code) > 2_000_000:
             raise ValueError(f"first-round candidate is too large for {theorem_key!r}")
+        reasoning = payload.get("reasoning", "Reused paired first-round candidate.")
         imports = payload.get("imports", [])
         opens = payload.get("opens", [])
+        if not isinstance(reasoning, str):
+            raise ValueError(f"first-round reasoning must be a string for {theorem_key!r}")
         if isinstance(imports, str) or not isinstance(imports, list):
             raise ValueError(f"first-round imports must be a list for {theorem_key!r}")
         if isinstance(opens, str) or not isinstance(opens, list):
             raise ValueError(f"first-round opens must be a list for {theorem_key!r}")
+        if not all(isinstance(item, str) for item in imports):
+            raise ValueError(f"first-round imports entries must be strings for {theorem_key!r}")
+        if not all(isinstance(item, str) for item in opens):
+            raise ValueError(f"first-round opens entries must be strings for {theorem_key!r}")
         return {
             "code": code,
-            "reasoning": str(payload.get("reasoning") or "Reused paired first-round candidate."),
-            "imports": [str(item) for item in imports],
-            "opens": [str(item) for item in opens],
+            "reasoning": reasoning,
+            "imports": list(imports),
+            "opens": list(opens),
         }
 
 
