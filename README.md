@@ -142,7 +142,7 @@ The `mock` provider only tests patching, compilation, and saving. Its candidate 
 
 The [model API guide](docs/API_GUIDE.md) covers DeepSeek V4 Pro/Flash, OpenAI GPT, environment variables, PowerShell / Git Bash, the local HTTP interface, and troubleshooting.
 
-The built-in `openai_compatible` provider uses **Chat Completions**, not the Responses API. The model name, endpoint, and key must belong to the same service; changing a URL alone does not guarantee protocol compatibility.
+The built-in `openai_compatible` provider supports both **Chat Completions** and the **Responses API**. Responses mode is selected with `--wire-api responses`; reasoning effort and response storage are explicit controls. The model name, endpoint, and key must still belong to the same service.
 
 ### DeepSeek
 
@@ -187,6 +187,10 @@ The frozen evaluation set is [Evaluation18.lean](lean_project/Benchmarks/Evaluat
 Model settings, output budget, compiler, timeout, problem order, and the three-round limit are held constant across conditions; only prompt context changes. A can generate multiple times but does not read previous diagnostics. B/C have no previous-round feedback on their first attempt.
 
 Evaluation does not use a runtime answer table. Retrieval checks for examples with declarations identical to evaluation problems; similar but non-identical propositions still require manual review. **Text deduplication does not eliminate every form of semantic leakage.** Here, `pass@3` means the proportion of tasks with at least one success within three rounds, not an unbiased pass@k estimate from independent samples. See the [experimental protocol](docs/methodology.md).
+
+### AxProverBase Part 1 + Part 2 paired experiment
+
+The separate FATE-M experiment compares Part 1's AxProverBase `ExperienceProcessor` baseline with Part 2's `MemorylessProcessor` plus deterministic `CapsuleFeedback`. Both conditions reuse the same first-round candidate for each of 25 problems and freeze `gpt-5.6-sol`, the AI4Math `yxai` Responses endpoint, budgets, and candidate policy. Both solved 25/25; total rounds decreased from 39 to 36, compilation errors from 14 to 11, LLM calls from 79 to 36, and tokens from 656,657 to 274,742. Capsule processing itself made zero LLM and compiler calls. See the [Part 2 design](docs/part2_capsule_feedback.md) and [reviewed result handoff](results/handoff/part12-live-20260828-corrected/README.md).
 
 ## Pilot results
 
@@ -310,7 +314,7 @@ Keep these checks distinct:
 ## Safety and scope
 
 - **Not an operating-system sandbox.** Temporary HOME/TMP/APPDATA directories, minimal environment variables, and candidate policies are defense layers. Run untrusted projects or Lean code in a container, VM, or isolated low-privilege environment.
-- **Local repair only.** The Agent must not rewrite imports or theorem headers. Candidates containing `sorry`, `admit`, `sorryAx`, unfinished-proof warnings, or certain explicit native-execution constructs are rejected. Text rules cannot be assumed to detect every Lean metaprogramming construct.
+- **Local repair only.** The Agent must not rewrite imports or theorem headers. Candidates containing `sorry`, `admit`, `sorryAx`, unfinished-proof warnings, unsafe declarations, or certain explicit native-execution constructs are rejected. D01 verifies that an `unsafe inductive` construction of `False` is rejected before Agent, AxProverBase, Capsule pack, replay, or audit can compile it; this is a security regression, not a fourth A/B/C condition. Text rules cannot be assumed to detect every Lean metaprogramming construct.
 - **Separate credentials from releases.** The provider restricts cross-origin redirects and sanitizes errors; keys are not experiment-record fields. Still inspect exports and send keys only to trusted providers.
 - **Readable comparisons and caching.** Diagnostic comparisons and request caching use normalized readable text, without digest or fingerprint computation. Cache reuse is for local debugging, not independent real sampling.
 - **Extraction is not global minimization.** Full-file fallback and explicit local-file manifests are not arbitrary multi-file program slicing. Diagnostic consistency does not guarantee preservation of every contextual meaning.
@@ -325,6 +329,8 @@ Keep these checks distinct:
 | Understand condition controls and validity constraints | [Methodology](docs/methodology.md) |
 | Look up per-round record fields | [JSONL format](docs/jsonl_schema.md) |
 | Create publicly shareable failure artifacts | [Artifact format](docs/CAPSULE_FORMAT.md) and [case contribution guide](docs/CONTRIBUTING_CAPSULES.md) |
+| Run or inspect the AxProverBase Part 1 + Part 2 experiment | [Part 1 guide](baseline/README.md), [Part 2 design](docs/part2_capsule_feedback.md), and [result handoff](results/handoff/part12-live-20260828-corrected/README.md) |
+| Inspect the D01 pre-compilation security gate | [Type D security regression](docs/security_type_d.md) |
 | Inspect published experiments and proofs | [Pilot release](published/pilot-20260826T122354Z-d628742d) |
 | Check current status and past changes | [PROGRESS](PROGRESS.md) and [CHANGELOG](CHANGELOG.md) |
 
@@ -342,6 +348,8 @@ lean_project/          Lean problems and local-dependency cases
 mathlib_project/       Separate Mathlib dependency project
 prompts/               A/B/C prompt templates
 scripts/               Dependency setup, tests, pilot validation, and export
+baseline/              AxProverBase Part 1 and paired Part 2 experiment runners
+configs/               Frozen AxProverBase model and memory configurations
 tests/                 Automated tests
 results/               Local run data and reports
 published/             Reviewed, sanitized experimental releases

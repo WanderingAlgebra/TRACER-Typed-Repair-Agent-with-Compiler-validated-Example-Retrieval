@@ -1,7 +1,16 @@
 .lake/
 __pycache__/
+auth.json
+api.txt
+.codex-ax-live-deps*/
+.live-yxai-smoke-*/
+.yxai-*-result-*
 results/real_pilot_runs.jsonl
 results/agent_runs.jsonl
 results/requests.sqlite3
 results/solutions/
 /results/archive/
+results/handoff/
+results/work/
+baseline/.baseline_cache.json
+baseline/runs/

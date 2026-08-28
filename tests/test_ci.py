@@ -31,3 +31,20 @@ class ContinuousIntegrationTest(unittest.TestCase):
         )[0]
         self.assertIn("auto-config: false", install_block)
         self.assertIn("use-github-cache: false", install_block)
+
+    def test_part2_workflow_contract(self):
+        workflow = (ROOT / ".github" / "workflows" / "part2.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("- main", workflow)
+        self.assertIn("ubuntu-latest", workflow)
+        self.assertNotIn("windows-latest", workflow)
+        self.assertIn("tests.test_feedback", workflow)
+        self.assertIn("tests.test_ax_integration", workflow)
+        self.assertIn("validate_axprover_contract.py", workflow)
+        self.assertIn("06dfadc9ab439755af5efcfe0add95bfef2733c7", workflow)
+        self.assertIn("pip install /tmp/ax-prover-base", workflow)
+        self.assertIn("smoke_axprover_integration.py", workflow)
+        self.assertIn("python scripts/run_ci_tests.py", workflow)
+        self.assertIn("run: lake build", workflow)
+        self.assertIn("contents: read", workflow)
+        self.assertNotIn("secrets.", workflow)

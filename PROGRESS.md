@@ -9,7 +9,7 @@
 - 修复 Bash Mathlib 安装遇到临时网络错误就立即退出的问题：依赖同步与缓存下载有限重试，残缺传递依赖备份后重试，保留原始错误并在耗尽后失败；CI 设置 30 分钟安装步骤上限。同步中英文 README，未改 PowerShell 入口或依赖固定版本。
 - 新增中英文双版 README：默认首页 `README.md` 使用英文，`README.zh-CN.md` 保留完整中文，两版顶部相互链接；命令、实验数据和证据链接一致，许可说明同步为仓库现有 MIT License。
 - 重构 README 为研究工具首页：补充项目价值、可核查设计贡献、双入口架构图、适用场景、真实 pilot 结果及证据链接；明确无训练、失败回放与成功证明的区别，以及实验结论和许可边界。
-- 补充 `docs/API_GUIDE.md`，统一 DeepSeek / OpenAI GPT、PowerShell / Git Bash、安全密钥输入、本地 HTTP 接口与排错步骤；同步 README、正式实验指南及共同作者贡献说明。当前内置 provider 仍仅发送 Chat Completions 请求，本次没有新增协议实现或调用付费 API。
+- 补充 `docs/API_GUIDE.md`，统一 DeepSeek / OpenAI GPT、PowerShell / Git Bash、安全密钥输入、本地 HTTP 接口与排错步骤；内置 provider 现同时支持 Chat Completions 与 Responses API，并显式控制 reasoning effort 和响应存储。
 - 将 TRACER 的编译器封装扩展为可直接运行 Lean 文件的 `run_lean_file()`。
 - 新增 `leancapsule pack`，支持按定理名或行区间选择输入并生成完整文件 fallback capsule。
 - 新增 `leancapsule replay`，编译 `Capsule.lean` 并比较编译状态、诊断类别和规范化 `diagnostic_key`。
@@ -38,13 +38,16 @@
 - 条件 C 会排除与评测命题完全相同的本地示例，避免把原题完整答案当作检索增益。
 - 吸收 leiteng 分支的临时 HOME/TMP/APPDATA 隔离、候选安全策略、严格 pilot 校验、正式报告门禁和脱敏导出流程；导出清单只记录相对路径与文件大小，不执行摘要计算。
 - `results/solutions/` 会按条件保存每个成功候选，`results/real_pilot_runs.jsonl` 保存逐轮原始轨迹；`evaluate.py --fresh` 会先归档旧实验，避免不同批次混合。
+- 已合入 AxProverBase Part 1 Experience baseline 与 Part 2 `MemorylessProcessor + CapsuleFeedback`：冻结 Ax commit、`yxai` Responses 模型条件、预算、首轮候选和逐题遥测；Part 2 直接消费已有 Builder 结果，不重复调用 Lean 或模型。
+- 已完成 FATE-M 25 题正式配对实验：两组均 25/25 成功，严格配对 25/25 通过；修正版总轮次 39→36、编译错误 14→11、LLM calls 79→36、tokens 656657→274742，正式结果与 SHA-256 清单位于 `results/handoff/part12-live-20260828-corrected/`；旧目录保留为历史工件。
+- 新增独立 D01 安全回归：`unsafe inductive` 构造 `False` 的候选在 Agent、AxProverBase 缓存/Proposal/Builder、Capsule pack/replay/audit 的 Lean 编译前拒绝；D 类不是 A/B/C 的第四个实验条件。
 
 ## 当前验证状态
 
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试共 75 项：73 项通过，2 项 Linux 符号链接边界检查在 Windows 跳过（使用 Anaconda Python 和显式 ELAN_HOME）。新增离线网络故障、有限重试、残缺包备份与 CI 安装预算回归检查；原有安全、编译、反馈、实验批次、双语文档、gallery 和 pilot 门禁检查通过。此前 `lake build` 通过，本次未单独重跑全量构建。
+- 完整 Python 测试共 129 项：127 项通过，2 项 Linux 符号链接边界检查在 Windows 跳过。Part 1/2 配置、完整 Proposal 配对、重跑状态隔离、CapsuleFeedback、Ax 接入、D01 编译前门禁、双语文档、gallery、provider 和 pilot 门禁均通过；PR 的 Ubuntu `lake build` 与完整 Python 回归已通过。
 - 本次网络故障测试使用命令替身，不等于已完成真实冷启动下载或远程 CI 验收；修复仍在本地，推送后需查看新的 Actions 结果。
 - 中英文 README 各 43 个本地链接、3 个页内锚点、13 个 PowerShell 兼容代码块和 2 个 Bash 代码块检查通过；公开实验工件链接通过 Git 中的已提交文件核验。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
@@ -56,3 +59,4 @@
 - `manual_review.csv` 的 54 条人工复核仍必须由研究者逐条填写；系统不会自动伪造 kernel_pass、假设合理性或泄漏风险结论。
 - 本次代码迁移没有伪造真实 provider 轨迹；若 `results/real_pilot_runs.jsonl` 尚未由真实 provider 生成，严格校验和导出会明确拒绝，不能把 smoke/mock 记录冒充正式实验。
 - 本地编译隔离是环境清理和候选策略防护，不等同于操作系统级沙箱；运行不受信任项目时仍应使用容器或独立低权限环境。
+- Part 1/2 的 25 题结果是单模型、单批次运行证据，不能据此声称统计显著优势或通用定理证明能力；Part 3 仍需正式统计解释与更大规模重复实验。

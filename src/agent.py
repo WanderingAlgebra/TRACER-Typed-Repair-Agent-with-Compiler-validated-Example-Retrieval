@@ -172,7 +172,7 @@ def solve_problem(
                 compile_ms = 0.0
                 raw_diagnostics = diagnostic["summary"]
             elif safety_violation := candidate_safety_violation(candidate):
-                diagnostic = {"category": "unsafe_candidate", "summary": safety_violation, "feedback": "只允许局部证明项；不能使用元编程入口或注入额外命令。", "errors": [], "truncated": False}
+                diagnostic = {"category": "unsafe_candidate", "summary": safety_violation, "feedback": "只允许局部证明项；不能使用 unsafe 声明、元编程入口或注入额外命令。", "errors": [], "truncated": False}
                 compile_ok = False
                 compile_ms = 0.0
                 raw_diagnostics = safety_violation
@@ -272,6 +272,9 @@ def main() -> int:
     solve.add_argument("--api-key-stdin", action="store_true", help="从标准输入读取 API 密钥，不写入日志")
     solve.add_argument("--temperature", type=float)
     solve.add_argument("--max-tokens", type=int)
+    solve.add_argument("--wire-api", choices=["chat_completions", "responses"])
+    solve.add_argument("--reasoning-effort", choices=["minimal", "low", "medium", "high"])
+    solve.add_argument("--disable-response-storage", action="store_true", default=None)
     solve.add_argument("--examples-dir", type=Path, default=ROOT / "examples")
     solve.add_argument("--cache", type=Path, default=ROOT / "results" / "requests.sqlite3")
     solve.add_argument("--output-dir", type=Path, default=ROOT / "results" / "solutions")
@@ -297,6 +300,9 @@ def main() -> int:
             model=args.model,
             temperature=args.temperature,
             max_tokens=args.max_tokens,
+            wire_api=args.wire_api,
+            reasoning_effort=args.reasoning_effort,
+            disable_response_storage=args.disable_response_storage,
         )
         result = solve_problem(args.file.resolve(), args.theorem, args.condition, provider, args.max_rounds, args.timeout, args.examples_dir.resolve(), args.cache.resolve(), args.output_dir.resolve(), args.log.resolve(), args.start_marker, args.end_marker, args.placeholder)
         response = {

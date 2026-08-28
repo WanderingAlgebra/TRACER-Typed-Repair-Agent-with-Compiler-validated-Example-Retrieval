@@ -1,6 +1,8 @@
 import csv
 import json
+import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -47,3 +49,18 @@ class GalleryTest(unittest.TestCase):
             for path in (out, out.with_suffix(".csv"), out.with_suffix(".md")):
                 if path.exists():
                     path.unlink()
+
+    def test_audit_rejects_type_d_unsafe_inductive(self):
+        with tempfile.TemporaryDirectory() as temp:
+            gallery = Path(temp) / "capsules"
+            shutil.copytree(ROOT / "capsules", gallery)
+            target = next(gallery.rglob("Capsule.lean"))
+            target.write_text(
+                (ROOT / "benchmarks" / "security" / "unsafe_inductive_false.lean").read_text(
+                    encoding="utf-8"
+                ),
+                encoding="utf-8",
+            )
+            result = audit_directory(gallery)
+            self.assertFalse(result["ok"])
+            self.assertTrue(any("不安全声明" in error for error in result["errors"]))

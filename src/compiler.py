@@ -39,6 +39,27 @@ _UNSAFE_ELABORATION = re.compile(
     r"|\b(?:readFile|writeFile|getEnv|spawn|execute|include_str)\b"
 )
 _UNSAFE_CANDIDATE = _UNSAFE_ELABORATION
+UNSAFE_DECLARATION_RE = re.compile(
+    r"(?m)^[ \t]*(?:@\[[^\]\r\n]*\][ \t]*)*"
+    r"(?:(?:private|protected|noncomputable|local|scoped)[ \t]+)*unsafe\b",
+    re.IGNORECASE,
+)
+INJECTED_COMMAND_RE = re.compile(
+    r"(?m)^[ \t]*(?:import|namespace|section|end|open|attribute|set_option|theorem|lemma|def|abbrev|"
+    r"instance|structure|class|inductive|coinductive|axiom|opaque|example|elab|macro|syntax|unsafe)\b"
+)
+FULL_DECLARATION_RE = re.compile(
+    r"(?m)^(?P<indent>[ \t]*)(?:(?:private|protected|noncomputable|local|scoped)[ \t]+)*"
+    r"(?P<kind>theorem|lemma|def|abbrev|instance|structure|class|inductive|coinductive|"
+    r"axiom|opaque|example|namespace|section|end|variable|include|omit|open|attribute|"
+    r"set_option)\b(?:[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_']*"
+    r"(?:\.[A-Za-z_][A-Za-z0-9_']*)*))?",
+    re.IGNORECASE,
+)
+LEAN_QUALIFIED_NAME_RE = re.compile(
+    r"^(?:[^\W\d]|_)[\w']*(?:\.(?:[^\W\d]|_)[\w']*)*$",
+    re.UNICODE,
+)
 _INCOMPLETE_PROOF_DIAGNOSTIC = re.compile(r"(?i)(?:uses?\s+['`]?sorry|\bsorryAx\b)")
 _COMMAND_START = re.compile(
     r"(?m)^\s*(?:theorem|lemma|example|def|abbrev|opaque|axiom|structure|class|"
@@ -71,8 +92,9 @@ class FileCompileResult:
 
 
 CANDIDATE_POLICY = {
-    "version": "tracer-candidate-v1",
+    "version": "tracer-candidate-v2",
     "meta_execution": "blocked",
+    "unsafe_declarations": "blocked",
     "environment": "minimal",
 }
 
@@ -134,18 +156,160 @@ def validate_candidate_safety(candidate: str) -> None:
 
 
 def source_meta_execution_violation(source: str) -> bool:
-    """识别源码中的编译期元编程入口。"""
+    """识别源码中的编译期元编程入口或 unsafe 声明。"""
 
-    return bool(_UNSAFE_ELABORATION.search(source))
+    cleaned = _strip_lean_comments(source)
+    return bool(_UNSAFE_ELABORATION.search(cleaned) or UNSAFE_DECLARATION_RE.search(cleaned))
 
 
 def candidate_safety_violation(candidate: str) -> str | None:
-    """拒绝局部证明中的元编程入口或额外顶层命令。"""
+    """拒绝局部证明中的元编程入口、unsafe 声明或额外顶层命令。"""
 
     if source_meta_execution_violation(candidate):
-        return "禁止的本机执行构造：候选包含不允许的 Lean 元编程或本机执行入口"
-    if any(re.match(r"^\s*(?:import|namespace|section|end|open|attribute|set_option|theorem|lemma|def|abbrev|instance|structure|class|inductive|axiom|opaque|example|elab|macro|syntax)\b", line) for line in candidate.splitlines()):
+        return "禁止的本机执行构造：候选包含不允许的 Lean 元编程、本机执行入口或 unsafe 声明"
+    if any(INJECTED_COMMAND_RE.match(line) for line in candidate.splitlines()):
         return "候选试图注入额外 Lean 命令"
+    return None
+
+
+def _strip_lean_comments(source: str) -> str:
+    """Remove nested Lean comments while preserving line boundaries."""
+
+    output: list[str] = []
+    index = 0
+    block_depth = 0
+    in_string = False
+    escaped = False
+    while index < len(source):
+        current = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if block_depth:
+            if current == "/" and following == "-":
+                block_depth += 1
+                output.extend("  ")
+                index += 2
+                continue
+            if current == "-" and following == "/":
+                block_depth -= 1
+                output.extend("  ")
+                index += 2
+                continue
+            output.append("\n" if current == "\n" else " ")
+            index += 1
+            continue
+        if not in_string and current == "-" and following == "-":
+            while index < len(source) and source[index] not in "\r\n":
+                output.append(" ")
+                index += 1
+            continue
+        if not in_string and current == "/" and following == "-":
+            block_depth = 1
+            output.extend("  ")
+            index += 2
+            continue
+        output.append(current)
+        if in_string:
+            if escaped:
+                escaped = False
+            elif current == "\\":
+                escaped = True
+            elif current == '"':
+                in_string = False
+        elif current == '"':
+            in_string = True
+        index += 1
+    return "".join(output)
+
+
+def _declaration_header(source: str) -> str | None:
+    """Return normalized declaration text before its top-level ``:=`` body."""
+
+    cleaned = _strip_lean_comments(source)
+    round_depth = square_depth = brace_depth = 0
+    in_string = False
+    escaped = False
+    index = 0
+    while index + 1 < len(cleaned):
+        current = cleaned[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif current == "\\":
+                escaped = True
+            elif current == '"':
+                in_string = False
+            index += 1
+            continue
+        if current == '"':
+            in_string = True
+        elif current == "(":
+            round_depth += 1
+        elif current == ")":
+            round_depth = max(0, round_depth - 1)
+        elif current == "[":
+            square_depth += 1
+        elif current == "]":
+            square_depth = max(0, square_depth - 1)
+        elif current == "{":
+            brace_depth += 1
+        elif current == "}":
+            brace_depth = max(0, brace_depth - 1)
+        elif (
+            current == ":"
+            and cleaned[index + 1] == "="
+            and round_depth == square_depth == brace_depth == 0
+        ):
+            return re.sub(r"\s+", " ", cleaned[:index]).strip()
+        index += 1
+    return None
+
+
+def full_theorem_safety_violation(
+    candidate: str,
+    *,
+    expected_name: str,
+    original_source: str,
+    imports: list[str] | tuple[str, ...] = (),
+    opens: list[str] | tuple[str, ...] = (),
+) -> str | None:
+    """Fail closed on unsafe or structurally changed full-theorem proposals."""
+
+    if source_meta_execution_violation(candidate):
+        return "完整 theorem 候选包含不允许的元编程、命令执行入口或 unsafe 声明"
+    if PLACEHOLDER_RE.search(candidate):
+        return "完整 theorem 候选包含 sorry、sorryAx 或 admit"
+    for label, values in (("import", imports), ("open", opens)):
+        if any(not LEAN_QUALIFIED_NAME_RE.fullmatch(str(value).strip()) for value in values):
+            return f"完整 theorem 候选包含非法 {label} 名称"
+
+    cleaned = _strip_lean_comments(candidate)
+    declarations = list(FULL_DECLARATION_RE.finditer(cleaned))
+    if not declarations:
+        return "完整 theorem 候选缺少顶层声明"
+    first = declarations[0]
+    if cleaned[: first.start()].strip():
+        return "完整 theorem 候选在目标声明前包含额外内容"
+    base_indent = len(first.group("indent").expandtabs(8))
+    top_level = [
+        declaration
+        for declaration in declarations
+        if len(declaration.group("indent").expandtabs(8)) <= base_indent
+    ]
+    if len(top_level) != 1:
+        return "完整 theorem 候选必须且只能包含一个顶层声明"
+    if first.group("kind").lower() not in {"theorem", "lemma"}:
+        return "完整 theorem 候选必须保持 theorem 或 lemma 声明"
+    expected_full_name = str(expected_name)
+    expected_short_name = expected_full_name.rsplit(".", 1)[-1]
+    if first.group("name") not in {expected_full_name, expected_short_name}:
+        return "完整 theorem 候选修改了目标声明名称"
+
+    original_header = _declaration_header(original_source)
+    candidate_header = _declaration_header(candidate)
+    if not original_header or not candidate_header:
+        return "无法确定完整 theorem 候选的声明头"
+    if candidate_header != original_header:
+        return "完整 theorem 候选修改了目标定理陈述"
     return None
 
 

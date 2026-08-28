@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from compiler import run_lean_file
+from compiler import run_lean_file, source_meta_execution_violation
 from diagnostics import normalize_diagnostics
 
 from .diagnostics_key import diagnostic_key
@@ -27,6 +27,8 @@ def replay_capsule(capsule: Path, timeout: float = 180.0) -> dict:
     source = capsule / str(manifest.get("replay", {}).get("file", "Capsule.lean"))
     if not source.exists():
         return {"ok": False, "capsule": capsule.name, "error": f"缺少回放源文件: {source.name}"}
+    if source_meta_execution_violation(source.read_text(encoding="utf-8")):
+        return {"ok": False, "capsule": capsule.name, "error": "回放源包含不允许的不安全声明或编译期执行入口"}
     dependency_project = manifest.get("environment", {}).get("dependency_project")
     project_root = (capsule / dependency_project).resolve() if dependency_project else capsule
     if not project_root.exists():

@@ -1,3 +1,4 @@
+import json
 import re
 import unittest
 from pathlib import Path
@@ -8,6 +9,44 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DocumentationConsistencyTest(unittest.TestCase):
     """防止公开文档与当前 API 和候选处理行为再次脱节。"""
+
+    def test_security_type_d_is_a_precompile_gate_not_an_agent_condition(self):
+        document = (ROOT / "docs" / "security_type_d.md").read_text(encoding="utf-8")
+        manifest = json.loads(
+            (ROOT / "benchmarks" / "security" / "manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertIn("不是 A/B/C 证明实验中的第四种 Agent 条件", document)
+        self.assertIn("reject_before_compile", document)
+        self.assertIn("AxProverBase", document)
+        self.assertIn("tracer-candidate-v2", document)
+        self.assertTrue(manifest)
+        self.assertTrue(all(case["type"] == "D" for case in manifest))
+
+    def test_part2_freezes_yxai_responses_and_reuses_ax_build_result(self):
+        part2 = (ROOT / "docs" / "part2_capsule_feedback.md").read_text(encoding="utf-8")
+        shared = (ROOT / "configs" / "axprover_yxai_gpt56_sol.yaml").read_text(encoding="utf-8")
+        baseline = (ROOT / "configs" / "axprover_part1_experience.yaml").read_text(encoding="utf-8")
+        capsule = (ROOT / "configs" / "axprover_part2_capsule.yaml").read_text(encoding="utf-8")
+        self.assertIn("openai:gpt-5.6-sol", part2)
+        self.assertIn("https://yxai.chat/v1", part2)
+        self.assertIn("store=false", part2)
+        self.assertIn("不运行 Lean、不调用模型", part2)
+        self.assertIn("(build_success, message)", part2)
+        self.assertIn("use_responses_api: true", shared)
+        self.assertIn("store: false", shared)
+        self.assertIn('effort: "high"', shared)
+        self.assertIn("ExperienceProcessor", baseline)
+        self.assertIn("MemorylessProcessor", capsule)
+
+    def test_part12_handoff_records_successful_strict_pairing(self):
+        handoff = json.loads(
+            (ROOT / "results" / "handoff" / "part12-live-20260828" / "handoff.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(handoff["paired_problems"], 25)
+        self.assertTrue(handoff["pairing_ok"])
+        self.assertEqual(len(handoff["files"]), 5)
 
     def readmes(self):
         return {

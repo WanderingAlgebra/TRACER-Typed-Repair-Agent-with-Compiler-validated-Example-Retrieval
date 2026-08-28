@@ -1,26 +1,27 @@
 # 模型 API 使用指南
 
-核对日期：2026-08-27。本指南以当前 `src/provider.py`、`src/agent.py`、`src/evaluate.py` 和 `src/api_server.py` 为准。示例经过参数与请求结构核对，不代表已经替你调用各家 API；账号权限、余额与服务可用性需通过一次单题运行确认。
+核对日期：2026-08-28。本指南以当前 `src/provider.py`、`src/agent.py`、`src/evaluate.py` 和 `src/api_server.py` 为准。示例经过参数与请求结构核对，不代表已经替你调用各家 API；账号权限、余额与服务可用性需通过一次单题运行确认。
 
 ## 1. 当前支持的接口
 
-内置 `openai_compatible` provider 发送非流式 **Chat Completions** 请求，包含 `model`、`messages`、`temperature`、`max_tokens`，通过 `Authorization: Bearer` 认证，并读取 `choices[0].message.content`。
+内置 `openai_compatible` provider 支持非流式 **Chat Completions** 和 **Responses API**。Chat 模式发送 `model/messages/temperature/max_tokens` 并读取 `choices[0].message.content`；Responses 模式发送 `model/input/max_output_tokens/reasoning/store` 并读取 `output[].content[].text`。两种模式都通过 `Authorization: Bearer` 认证。
 
 | 服务 | `--api-url` 完整请求地址 | `--model` 示例 | 示例输出预算 |
 | --- | --- | --- | --- |
 | DeepSeek | `https://api.deepseek.com/chat/completions` | `deepseek-v4-pro` | `12000` |
 | DeepSeek | `https://api.deepseek.com/chat/completions` | `deepseek-v4-flash` | `12000` |
 | OpenAI GPT | `https://api.openai.com/v1/chat/completions` | `gpt-4.1` | `4000` |
+| AI4Math yxai Responses | `https://yxai.chat/v1`（配合 `--wire-api responses`） | `gpt-5.6-sol` | 按冻结实验配置 |
 | 其他兼容服务 | 服务商提供的完整 Chat Completions 地址 | 该服务实际可用的模型 ID | 按该模型限制设置 |
 
 这些预算不是模型最低要求，也不保证证明成功。GPT-4.1 是适配现有请求结构的示例，并非“最新或最佳模型”的判断。DeepSeek 接口及模型名见[官方快速开始](https://api-docs.deepseek.com/)；GPT-4.1 的端点与模型信息见[官方模型页](https://developers.openai.com/api/docs/models/gpt-4.1)。
 
 重要限制：
 
-- 地址必须是完整端点，不能只填域名或 `/v1`，也不能粘贴 Markdown 的 `[网址](网址)` 包装。
-- 当前实现**不直接支持 Responses API**。即使模型同时支持 `/v1/responses`，也不能仅替换 URL；当前程序不会生成对应请求体。没有 `--wire-api`、`--reasoning-effort` 参数，也不读取相应的同名环境配置。
-- 不能把上述命令的模型名任意替换为 GPT-5 系列或其他推理模型。部分模型需要不同的输出预算字段或不接受当前温度参数；应先核对该模型协议。当前请求仍使用 `max_tokens`，没有自动转为 `max_completion_tokens`，见 [OpenAI Chat Completions 参数说明](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)。
-- 需要其他协议时，可自行实现 `--provider command` 适配器：标准输入接收 `{"prompt":"..."}`，标准输出返回 `{"candidate":"by ...","usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`。诊断写标准错误；不得把密钥写入命令字符串、候选或日志。当前命令 provider 默认超时为 60 秒。该路径需要适配代码，不是开箱即用的 Responses 支持。
+- Chat 模式地址应为完整端点；Responses 模式显式传 `--wire-api responses` 时可给 `/v1` base URL，provider 会追加 `/responses`。不要粘贴 Markdown 的 `[网址](网址)` 包装。
+- `--reasoning-effort` 仅用于 Responses；`--disable-response-storage` 会发送 `store=false`。不要假设所有兼容服务都支持这些字段。
+- 不能把示例模型名任意替换为其他模型。部分模型需要不同输出预算字段或不接受温度参数；应先核对对应协议。Chat 模式仍使用 `max_tokens`，Responses 模式使用 `max_output_tokens`。
+- 需要其他协议时，可实现 `--provider command` 适配器：标准输入接收 `{"prompt":"..."}`，标准输出返回 `{"candidate":"by ...","usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`。诊断写标准错误；不得把密钥写入命令字符串、候选或日志。当前命令 provider 默认超时为 60 秒。
 - 只把密钥发送给你确认可信的服务商；第三方兼容服务不等同于 OpenAI 官方服务。账号订阅或网页能使用某模型，不足以证明该 API 账号能调用同名模型。
 
 ## 2. 环境准备与密钥输入
@@ -94,6 +95,9 @@ python src/agent.py solve --file lean_project/Benchmarks/Evaluation18.lean --the
 | `--model` | `LEAN_PROOF_MODEL` | `gpt-4.1-mini`，建议总是显式指定 |
 | `--temperature` | `LEAN_PROOF_TEMPERATURE` | `0`，是否生效由服务端决定 |
 | `--max-tokens` | `LEAN_PROOF_MAX_TOKENS` | `800`，不建议直接用作推理模型完整评测预算 |
+| `--wire-api` | `LEAN_PROOF_WIRE_API` | 根据 URL 推断，建议 Responses 实验显式指定 |
+| `--reasoning-effort` | `LEAN_PROOF_REASONING_EFFORT` | 未设置；仅 Responses 使用 |
+| `--disable-response-storage` | `LEAN_PROOF_DISABLE_RESPONSE_STORAGE` | `false`；隐私敏感实验应显式关闭存储 |
 | `--api-key-prompt` / `--api-key-stdin` | `LEAN_PROOF_API_KEY` | 必须安全提供一种密钥来源 |
 
 显式 CLI 配置优先于环境变量。更换服务商时同时更换 URL、模型和密钥，避免只改其中一项。
