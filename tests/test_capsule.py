@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -28,6 +29,29 @@ class CapsuleTest(unittest.TestCase):
             diagnostic_key({"category": "ok", "summary": "info: downloading http<local-path>"}),
             "ok | Lean 编译通过。",
         )
+
+    def test_both_module_entrypoints_are_usable(self):
+        for module in ("leancapsule", "src.leancapsule"):
+            completed = subprocess.run(
+                [sys.executable, "-m", module, "--help"],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import leancapsule.pack; import leancapsule; assert leancapsule.diagnostic_key",
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_manifest_schema_validation(self):
         manifest = {
