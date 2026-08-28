@@ -26,7 +26,7 @@ Available artifacts:
 - **18 frozen problems × 3 experimental conditions**, with a published real-provider pilot containing 56 per-round records and 54 successful proof files.
 - **An end-to-end workflow** covering a single-problem CLI, local HTTP API, batch evaluation, manual review, report validation, and sanitized export.
 
-For project background, see [SJTU AI4Math Summer School 2026](https://sjtu-ai4math.github.io/summer-school/2026/). These artifact counts are not evidence of general theorem-proving ability or superior performance; experimental limitations are discussed below.
+These artifact counts are not evidence of general theorem-proving ability or superior performance; experimental limitations are discussed below.
 
 Both README versions provide a full overview and runnable examples. Most linked detailed guides are currently in Chinese.
 
