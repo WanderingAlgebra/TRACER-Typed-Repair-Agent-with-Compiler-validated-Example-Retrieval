@@ -178,6 +178,7 @@ def run_case(case: dict[str, Any], capsules_root: Path, timeout: float) -> dict[
     capsule_dir = capsules_root / case["case_id"]
     _safe_remove_generated_case(capsule_dir, capsules_root)
     project_argument = project_root or (find_project_root(error_file) or ROOT)
+    evaluation_set = str(case.get("evaluation_set", "challenge"))
     pack_command = [
         sys.executable,
         "-m",
@@ -200,7 +201,7 @@ def run_case(case: dict[str, Any], capsules_root: Path, timeout: float) -> dict[
         "--license",
         "MIT",
         "--notes",
-        f"LeanCapsule challenge pilot: {case['case_id']}; evaluation-only, not core gallery.",
+        f"LeanCapsule {evaluation_set} feasibility case: {case['case_id']}.",
     ]
     pack_started = time.perf_counter()
     try:
@@ -289,6 +290,9 @@ def run_case(case: dict[str, Any], capsules_root: Path, timeout: float) -> dict[
         notes.append("theorem extraction required full-file fallback")
     return {
         "case_id": case["case_id"],
+        "evaluation_set": evaluation_set,
+        "taxonomy": case.get("taxonomy"),
+        "source_kind": case.get("source_kind"),
         "challenge_type": case["challenge_type"],
         "correct_template_compile_ok": correct.ok,
         "error_version_failed_as_expected": error_failed_as_expected,
@@ -317,7 +321,7 @@ def run_case(case: dict[str, Any], capsules_root: Path, timeout: float) -> dict[
         "strict_original_diagnostics_sha256": hashlib.sha256(strict_original.encode("utf-8")).hexdigest(),
         "strict_capsule_diagnostics_sha256": hashlib.sha256(strict_capsule.encode("utf-8")).hexdigest() if capsule_result else None,
         "strict_metric_scope": (
-            "Challenge analysis only: complete ordered diagnostic text after path, location, "
+            "Feasibility analysis only: complete ordered diagnostic text after path, location, "
             "metavariable, and trailing-whitespace normalization; not semantic equivalence and "
             "not a replacement for the official diagnostic_key."
         ),
