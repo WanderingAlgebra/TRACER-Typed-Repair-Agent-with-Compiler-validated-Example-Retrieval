@@ -11,7 +11,7 @@ recorded in `handoff.json`.
 
 ## Frozen conditions
 
-- Source revision: recorded in `handoff.json` after the corrected changes are committed.
+- Source revision: `8fdeace98781a672a6a2eeaf4e398890e139f16a`.
 - AxProverBase revision: `06dfadc9ab439755af5efcfe0add95bfef2733c7`
 - Provider: AI4Math `yxai`
 - Model: `gpt-5.6-sol` (`openai:gpt-5.6-sol` in Ax/LangChain configuration)
