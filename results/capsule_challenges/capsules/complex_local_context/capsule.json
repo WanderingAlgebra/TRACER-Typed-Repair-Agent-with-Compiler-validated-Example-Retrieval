@@ -11,6 +11,7 @@
     "lake_manifest_present": true,
     "lakefile_present": true,
     "local_files": [],
+    "local_build_targets": [],
     "dependency_project": null
   },
   "expected": {
@@ -37,7 +38,7 @@
   "provenance": {
     "license": "MIT",
     "source_url": null,
-    "notes": "LeanCapsule challenge pilot: complex_local_context; evaluation-only, not core gallery."
+    "notes": "LeanCapsule challenge feasibility case: complex_local_context."
   },
   "replay": {
     "file": "Capsule.lean",

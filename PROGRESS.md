@@ -47,7 +47,7 @@
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
-- 完整 Python 测试共 75 项：73 项通过，2 项 Linux 符号链接边界检查在 Windows 跳过（使用 Anaconda Python 和显式 ELAN_HOME）。新增离线网络故障、有限重试、残缺包备份与 CI 安装预算回归检查；原有安全、编译、反馈、实验批次、双语文档、gallery 和 pilot 门禁检查通过。此前 `lake build` 通过，本次未单独重跑全量构建。
+- 完整 Python 测试 85/85 通过（macOS、Python 3.13.5）；新增多文件依赖预构建、core 矩阵、CI 硬门槛及 Bash 重试变量边界检查，原有安全、编译、反馈、实验批次、双语文档、gallery 和 pilot 门禁检查也通过。本次 `lake build` 已通过。
 - 本次网络故障测试使用命令替身，不等于已完成真实冷启动下载或远程 CI 验收；修复仍在本地，推送后需查看新的 Actions 结果。
 - 中英文 README 各 43 个本地链接、3 个页内锚点、13 个 PowerShell 兼容代码块和 2 个 Bash 代码块检查通过；公开实验工件链接通过 Git 中的已提交文件核验。
 - Mathlib 回放在准备 `mathlib_project` 依赖缓存后通过；缓存目录不提交到仓库。
