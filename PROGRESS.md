@@ -6,6 +6,8 @@
 
 ## 已完成
 
+- 修复多文件 Capsule 的干净环境回放：按本地 Lean import 闭包复制源码与顶层库入口，在隔离环境中先执行限定的 `lake build` 目标再回放；不再依赖或打包本机生成的 `.olean` / `.ilean` 文件。
+- 新增 12 core + 4 challenge 可行性实验。core 按 4 类错误 × 3 类上下文覆盖并作为硬门槛；当前 core 12/12、challenge 4/4、全部 16/16 均保持诊断键和完整有序规范化诊断，并在全新临时目录回放成功。
 - 修复 Bash Mathlib 安装遇到临时网络错误就立即退出的问题：依赖同步与缓存下载有限重试，残缺传递依赖备份后重试，保留原始错误并在耗尽后失败；CI 设置 30 分钟安装步骤上限。同步中英文 README，未改 PowerShell 入口或依赖固定版本。
 - 新增中英文双版 README：默认首页 `README.md` 使用英文，`README.zh-CN.md` 保留完整中文，两版顶部相互链接；命令、实验数据和证据链接一致，许可说明同步为仓库现有 MIT License。
 - 重构 README 为研究工具首页：补充项目价值、可核查设计贡献、双入口架构图、适用场景、真实 pilot 结果及证据链接；明确无训练、失败回放与成功证明的区别，以及实验结论和许可边界。
@@ -41,6 +43,7 @@
 
 ## 当前验证状态
 
+- `python scripts/run_capsule_feasibility.py`：core 硬门槛 12/12，challenge 干净回放 4/4，全部案例诊断键、完整有序规范化诊断和干净回放 16/16；core standalone/fallback 为 5/7，challenge 为 2/2。
 - `leancapsule verify capsules`：24/24 通过（Std 14、Mathlib 4、project-local 6）。
 - `leancapsule gallery capsules --out capsules/index.json`：通过；四类 taxonomy 均不少于 3 个，三类来源均不少于 4 个。
 - `leancapsule audit capsules`：24/24 通过，无发布审计错误。
@@ -52,7 +55,7 @@
 ## 明确边界
 
 - capsule gallery 验收的是失败复现协议，不等同于真实模型 A/B/C 实验；模型实验需另行配置 provider、冻结模型参数并记录 token、延迟和编译次数。
-- 多文件依赖目前采用完整文件 fallback 与显式本地文件清单，不承诺任意项目的程序切片。
+- 多文件依赖目前按可解析的本地 Lean import 闭包与顶层 Lake 构建目标打包，仍不承诺任意 Lake 项目的程序切片、非 Lean 构建步骤或动态依赖都可自动迁移。
 - `manual_review.csv` 的 54 条人工复核仍必须由研究者逐条填写；系统不会自动伪造 kernel_pass、假设合理性或泄漏风险结论。
 - 本次代码迁移没有伪造真实 provider 轨迹；若 `results/real_pilot_runs.jsonl` 尚未由真实 provider 生成，严格校验和导出会明确拒绝，不能把 smoke/mock 记录冒充正式实验。
 - 本地编译隔离是环境清理和候选策略防护，不等同于操作系统级沙箱；运行不受信任项目时仍应使用容器或独立低权限环境。

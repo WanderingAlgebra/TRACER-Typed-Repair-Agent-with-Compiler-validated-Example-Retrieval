@@ -2,6 +2,15 @@
 
 本文件记录影响安全性、实验可复现性、Lean 编译边界和公开发布的补丁。它与 `PROGRESS.md` 的职责不同：`PROGRESS.md` 描述当前状态，本文按提交批次记录变更原因、影响范围和验证证据。
 
+## 2026-08-28 — 多文件 Capsule 干净回放与 12+4 可行性实验
+
+- 修复隔离 HOME 导致 Unix 环境丢失 Elan 工具链位置的问题；回放多文件 Capsule 时按本地 Lean import 闭包复制源码和顶层库入口，并在编译 `Capsule.lean` 前执行限定的 Lake 构建目标。
+- 打包结果不再携带机器相关的 `.olean` / `.ilean` 文件；本地依赖超过 64 个文件时明确失败，不静默截断。manifest schema 新增 `environment.local_build_targets` 并校验文件路径和构建目标。
+- 新增 12 个 core 案例，平衡覆盖 4 类错误与 standalone、same-file、project-local 三类上下文；保留 4 个 challenge 案例。每个 core 案例均由可编译版本经一行变更得到失败版本。
+- 新增统一实验入口和 CI 硬门槛。当前本地结果为 core 12/12、challenge 4/4，全部 16 个案例均保持诊断键与完整有序规范化诊断，并在全新临时目录回放成功。
+- 完整回归同时修正 Bash 重试日志中变量紧邻全角标点造成的变量名误解析；该问题此前会让 Mathlib 准备脚本在首次日志输出时退出。
+- 该结果只验证有限合成矩阵及当前四个 challenge，不代表任意 Lake 项目均可自动切片或迁移，也不是模型修复成功率实验。
+
 ## 2026-08-28 — Mathlib 下载超时恢复
 
 - 对应 CI 日志：克隆传递依赖 `LeanSearchClient` 时发生 `SSL connection timeout`，`lake update` 退出；这是依赖获取失败，并非 Lean 证明编译错误。
